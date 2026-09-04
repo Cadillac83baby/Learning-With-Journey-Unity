@@ -1,0 +1,9 @@
+{
+  "dependencies": {
+    "com.unity.2d.animation": "10.2.0",
+    "com.unity.2d.sprite": "1.0.0",
+    "com.unity.inputsystem": "1.11.2",
+    "com.unity.textmeshpro": "3.0.9",
+    "com.unity.ugui": "2.0.0"
+  }
+}
