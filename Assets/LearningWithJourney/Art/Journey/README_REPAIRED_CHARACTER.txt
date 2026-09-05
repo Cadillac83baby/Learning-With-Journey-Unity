@@ -1,0 +1,1 @@
+JourneyMenuCleanFixed.png is the repaired full-body menu character asset created from the existing Journey sprite, with the damaged right side of the shorts restored. The Unity menu repair script will use this repaired texture when it is present in the project.
