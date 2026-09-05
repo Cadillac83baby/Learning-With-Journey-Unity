@@ -19,17 +19,14 @@ namespace LearningWithJourney.Character
 
         [Header("Animation")]
         [SerializeField] float greetingDelay = 1.0f;
-        [SerializeField] float talkFrameSeconds = 0.9f;
-        [SerializeField] float idleBreathSeconds = 2.6f;
+        [SerializeField] float idleBreathCycleSeconds = 3.6f;
+        [SerializeField] float talkPulseSeconds = 0.9f;
 
-        // The temporary atlas is not a true skeletal rig. Some blink/action frames change
-        // body shading or contain alpha artifacts around the shorts/legs. To keep Journey's
-        // body visually stable on the Main Menu we hold a clean complete-body frame for idle
-        // and create most motion with the RectTransform instead of rapidly swapping artwork.
-        static readonly int IdleStable = 1;
-        static readonly int WaveStable = 4;
-        static readonly int TalkOpenA = 7;
-        static readonly int TalkOpenB = 8;
+        // IMPORTANT: The temporary sprite atlas contains inconsistent alpha in several frames,
+        // especially around the shorts/legs. Until the final skeletal rig is installed, the
+        // main menu keeps one clean full-body frame on screen at all times and animates the
+        // whole character transform instead of swapping body sprites.
+        static readonly int StableFullBodyFrame = 0;
 
         const int AtlasColumns = 5;
         const int AtlasRows = 3;
@@ -44,19 +41,14 @@ namespace LearningWithJourney.Character
         void Awake()
         {
             rect = transform as RectTransform;
-            if (rect != null)
-            {
-                baseAnchoredPosition = rect.anchoredPosition;
-                baseRotation = rect.localRotation;
-                baseScale = rect.localScale;
-            }
+            CacheBaseTransform();
 
             if (characterImage != null && atlas != null)
             {
                 characterImage.texture = atlas;
                 characterImage.color = Color.white;
                 characterImage.canvasRenderer.SetAlpha(1f);
-                SetFrame(IdleStable);
+                SetStableFrame();
             }
 
             if (voiceSource != null)
@@ -71,11 +63,13 @@ namespace LearningWithJourney.Character
 
         void OnEnable()
         {
+            CacheBaseTransform();
             ResetVisualTransform();
-            SetFrame(IdleStable);
+            SetStableFrame();
             StartIdle();
 
-            if (sequenceRoutine != null) StopCoroutine(sequenceRoutine);
+            if (sequenceRoutine != null)
+                StopCoroutine(sequenceRoutine);
             sequenceRoutine = StartCoroutine(OpeningSequence());
         }
 
@@ -83,7 +77,7 @@ namespace LearningWithJourney.Character
         {
             StopAllCharacterCoroutines();
             ResetVisualTransform();
-            SetFrame(IdleStable);
+            SetStableFrame();
         }
 
         IEnumerator OpeningSequence()
@@ -102,44 +96,52 @@ namespace LearningWithJourney.Character
                 yield return TalkForDuration(3.2f);
 
             HideSpeech();
-            SetFrame(IdleStable);
-            yield return GentlePointNudge();
+            yield return GentlePoint();
             ResetVisualTransform();
+            SetStableFrame();
             StartIdle();
         }
 
         public void PlayGreeting()
         {
             if (!isActiveAndEnabled) return;
-            if (sequenceRoutine != null) StopCoroutine(sequenceRoutine);
+
+            if (sequenceRoutine != null)
+                StopCoroutine(sequenceRoutine);
+
             StopIdle();
             ResetVisualTransform();
-            SetFrame(IdleStable);
+            SetStableFrame();
             sequenceRoutine = StartCoroutine(OpeningSequence());
         }
 
         public void Speak(AudioClip clip, string caption)
         {
             if (!isActiveAndEnabled) return;
-            if (sequenceRoutine != null) StopCoroutine(sequenceRoutine);
+
+            if (sequenceRoutine != null)
+                StopCoroutine(sequenceRoutine);
+
             StopIdle();
             ResetVisualTransform();
+            SetStableFrame();
             sequenceRoutine = StartCoroutine(SpeakExternalRoutine(clip, caption));
         }
 
         IEnumerator SpeakExternalRoutine(AudioClip clip, string caption)
         {
             ShowSpeech(caption);
-            yield return SpeakRoutine(clip, 2.8f);
+            yield return SpeakRoutine(clip, 2.6f);
             HideSpeech();
-            SetFrame(IdleStable);
             ResetVisualTransform();
+            SetStableFrame();
             StartIdle();
         }
 
         IEnumerator SpeakRoutine(AudioClip clip, float fallbackDuration)
         {
             float duration = fallbackDuration;
+
             if (clip != null && voiceSource != null)
             {
                 voiceSource.Stop();
@@ -148,49 +150,63 @@ namespace LearningWithJourney.Character
                 duration = clip.length;
             }
 
-            if (duration <= 0f) duration = 2.8f;
+            if (duration <= 0f)
+                duration = 2.6f;
+
             yield return TalkForDuration(duration);
         }
 
         IEnumerator TalkForDuration(float duration)
         {
-            float elapsed = 0f;
-            bool alternate = false;
+            SetStableFrame();
 
-            while (elapsed < duration)
+            if (rect == null)
             {
-                SetFrame(alternate ? TalkOpenA : TalkOpenB);
-                alternate = !alternate;
-
-                float hold = Mathf.Min(talkFrameSeconds, duration - elapsed);
-                yield return GentleSpeakingMotion(hold);
-                elapsed += hold;
+                yield return new WaitForSeconds(duration);
+                yield break;
             }
 
-            SetFrame(IdleStable);
+            float elapsed = 0f;
+            while (elapsed < duration)
+            {
+                elapsed += Time.deltaTime;
+
+                float pulse = Mathf.Sin((elapsed / Mathf.Max(.1f, talkPulseSeconds)) * Mathf.PI * 2f);
+                float scale = 1f + (pulse * 0.008f);
+                float y = Mathf.Sin((elapsed / 1.8f) * Mathf.PI * 2f) * 1.8f;
+
+                rect.localScale = baseScale * scale;
+                rect.anchoredPosition = baseAnchoredPosition + new Vector2(0f, y);
+                yield return null;
+            }
+
             ResetVisualTransform();
+            SetStableFrame();
         }
 
         public void Celebrate()
         {
             if (!isActiveAndEnabled) return;
-            if (sequenceRoutine != null) StopCoroutine(sequenceRoutine);
+
+            if (sequenceRoutine != null)
+                StopCoroutine(sequenceRoutine);
+
             StopIdle();
+            SetStableFrame();
             sequenceRoutine = StartCoroutine(CelebrateRoutine());
         }
 
         IEnumerator CelebrateRoutine()
         {
-            SetFrame(IdleStable);
-            yield return GentleBounce(1.1f, 10f);
+            yield return GentleBounce(1.0f, 7f);
             ResetVisualTransform();
+            SetStableFrame();
             StartIdle();
         }
 
         void StartIdle()
         {
             StopIdle();
-            SetFrame(IdleStable);
             idleRoutine = StartCoroutine(IdleBreathing());
         }
 
@@ -205,88 +221,86 @@ namespace LearningWithJourney.Character
 
         IEnumerator IdleBreathing()
         {
-            // No atlas-based blink on this temporary sprite sheet. Switching the entire
-            // frame to blink was also changing the shorts/body and creating the fade the
-            // user could see. A real facial blink will return when Journey is on the rig.
+            // No sprite-sheet blinking here. The final rig will blink eyelids independently.
+            SetStableFrame();
+
             while (true)
             {
-                SetFrame(IdleStable);
-                yield return GentleBounce(idleBreathSeconds, 1.8f);
+                if (rect == null)
+                {
+                    yield return new WaitForSeconds(1f);
+                    continue;
+                }
+
+                float elapsed = 0f;
+                while (elapsed < idleBreathCycleSeconds)
+                {
+                    elapsed += Time.deltaTime;
+                    float t = elapsed / Mathf.Max(.1f, idleBreathCycleSeconds);
+                    float y = Mathf.Sin(t * Mathf.PI * 2f) * 1.5f;
+                    float scale = 1f + Mathf.Sin(t * Mathf.PI * 2f) * 0.004f;
+
+                    rect.anchoredPosition = baseAnchoredPosition + new Vector2(0f, y);
+                    rect.localScale = baseScale * scale;
+                    yield return null;
+                }
+
+                ResetVisualTransform();
             }
         }
 
         IEnumerator GentleWave()
         {
-            SetFrame(WaveStable);
+            SetStableFrame();
 
             if (rect == null)
             {
-                yield return new WaitForSeconds(1.7f);
-                SetFrame(IdleStable);
+                yield return new WaitForSeconds(1.65f);
                 yield break;
             }
 
-            float duration = 1.7f;
+            float duration = 1.65f;
             float elapsed = 0f;
             while (elapsed < duration)
             {
                 elapsed += Time.deltaTime;
                 float t = Mathf.Clamp01(elapsed / duration);
-                float angle = Mathf.Sin(t * Mathf.PI * 2f) * 1.1f;
+                float angle = Mathf.Sin(t * Mathf.PI * 2f) * 1.2f;
                 float lift = Mathf.Sin(t * Mathf.PI) * 3f;
+
                 rect.localRotation = Quaternion.Euler(0f, 0f, angle);
                 rect.anchoredPosition = baseAnchoredPosition + new Vector2(0f, lift);
                 yield return null;
             }
 
             ResetVisualTransform();
-            SetFrame(IdleStable);
+            SetStableFrame();
         }
 
-        IEnumerator GentlePointNudge()
+        IEnumerator GentlePoint()
         {
-            SetFrame(IdleStable);
+            SetStableFrame();
+
             if (rect == null)
             {
-                yield return new WaitForSeconds(0.9f);
+                yield return new WaitForSeconds(1.15f);
                 yield break;
             }
 
-            float duration = 0.9f;
+            float duration = 1.15f;
             float elapsed = 0f;
             while (elapsed < duration)
             {
                 elapsed += Time.deltaTime;
                 float t = Mathf.Clamp01(elapsed / duration);
                 float nudge = Mathf.Sin(t * Mathf.PI) * 5f;
+
                 rect.anchoredPosition = baseAnchoredPosition + new Vector2(nudge, 0f);
                 yield return null;
             }
 
             ResetVisualTransform();
-        }
-
-        IEnumerator GentleSpeakingMotion(float duration)
-        {
-            if (rect == null)
-            {
-                yield return new WaitForSeconds(duration);
-                yield break;
-            }
-
-            float elapsed = 0f;
-            while (elapsed < duration)
-            {
-                elapsed += Time.deltaTime;
-                float t = Mathf.Clamp01(elapsed / duration);
-                float y = Mathf.Sin(t * Mathf.PI) * 2.4f;
-                float angle = Mathf.Sin(t * Mathf.PI * 2f) * 0.45f;
-                rect.anchoredPosition = baseAnchoredPosition + new Vector2(0f, y);
-                rect.localRotation = Quaternion.Euler(0f, 0f, angle);
-                yield return null;
-            }
-
-            ResetVisualTransform();
+            SetStableFrame();
         }
 
         IEnumerator GentleBounce(float duration, float amount)
@@ -303,11 +317,17 @@ namespace LearningWithJourney.Character
                 elapsed += Time.deltaTime;
                 float t = Mathf.Clamp01(elapsed / duration);
                 float y = Mathf.Sin(t * Mathf.PI * 2f) * amount;
+
                 rect.anchoredPosition = baseAnchoredPosition + new Vector2(0f, y);
                 yield return null;
             }
 
             rect.anchoredPosition = baseAnchoredPosition;
+        }
+
+        void SetStableFrame()
+        {
+            SetFrame(StableFullBodyFrame);
         }
 
         void SetFrame(int frameIndex)
@@ -326,9 +346,22 @@ namespace LearningWithJourney.Character
             characterImage.canvasRenderer.SetAlpha(1f);
         }
 
+        void CacheBaseTransform()
+        {
+            if (rect == null)
+                rect = transform as RectTransform;
+
+            if (rect == null) return;
+
+            baseAnchoredPosition = rect.anchoredPosition;
+            baseRotation = rect.localRotation;
+            baseScale = rect.localScale;
+        }
+
         void ResetVisualTransform()
         {
             if (rect == null) return;
+
             rect.anchoredPosition = baseAnchoredPosition;
             rect.localRotation = baseRotation;
             rect.localScale = baseScale;
@@ -337,6 +370,7 @@ namespace LearningWithJourney.Character
         void StopAllCharacterCoroutines()
         {
             StopIdle();
+
             if (sequenceRoutine != null)
             {
                 StopCoroutine(sequenceRoutine);
@@ -346,13 +380,17 @@ namespace LearningWithJourney.Character
 
         void ShowSpeech(string value)
         {
-            if (speechText != null) speechText.text = value;
-            if (speechBubble != null) speechBubble.SetActive(true);
+            if (speechText != null)
+                speechText.text = value;
+
+            if (speechBubble != null)
+                speechBubble.SetActive(true);
         }
 
         void HideSpeech()
         {
-            if (speechBubble != null) speechBubble.SetActive(false);
+            if (speechBubble != null)
+                speechBubble.SetActive(false);
         }
     }
 }
