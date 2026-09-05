@@ -1,0 +1,1 @@
+Place JourneyMenuCleanFixed.png in this same folder. Then use Learning with Journey > Apply Repaired Journey Character. This keeps the same Journey character while restoring the damaged shorts and uses transform motion instead of damaged atlas frame swapping.
