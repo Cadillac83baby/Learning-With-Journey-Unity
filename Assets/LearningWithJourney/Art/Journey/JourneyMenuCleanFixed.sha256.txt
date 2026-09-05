@@ -1,0 +1,1 @@
+Repaired asset generated from the existing Journey atlas; full binary PNG is supplied separately in chat.
