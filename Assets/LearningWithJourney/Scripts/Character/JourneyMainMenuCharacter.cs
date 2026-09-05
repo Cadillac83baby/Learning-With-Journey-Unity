@@ -19,20 +19,21 @@ namespace LearningWithJourney.Character
 
         [Header("Animation")]
         [SerializeField] float greetingDelay = 1.0f;
-        [SerializeField] float talkFrameSeconds = 0.48f;
-        [SerializeField] float idlePauseMin = 2.2f;
-        [SerializeField] float idlePauseMax = 3.4f;
+        [SerializeField] float talkFrameSeconds = 0.68f;
+        [SerializeField] float idlePauseMin = 6.0f;
+        [SerializeField] float idlePauseMax = 9.0f;
+        [SerializeField] float blinkHalfSeconds = 0.15f;
+        [SerializeField] float blinkClosedSeconds = 0.11f;
 
-        // Safe atlas frames only. Frames 5, 6, 12 and 13 contain edge/artifact issues
-        // in the current temporary atlas, so the menu animation intentionally avoids them.
-        static readonly int IdleOpen = 0;
-        static readonly int IdleSoft = 1;
+        // Only frames with a complete torso, shorts and legs are used on the menu.
+        // The temporary atlas has missing-alpha holes in several other frames.
+        static readonly int IdleOpen = 1;
         static readonly int BlinkClosed = 2;
         static readonly int BlinkHalf = 3;
-        static readonly int WavePose = 4;
-        static readonly int[] TalkFrames = { 7, 8, 9, 10, 9, 8 };
-        static readonly int PointLikePose = 10;
-        static readonly int CelebratePose = 8;
+        static readonly int WavePose = 5;
+        static readonly int[] TalkFrames = { 10, 11, 10, 11 };
+        static readonly int PointLikePose = 11;
+        static readonly int CelebratePose = 10;
 
         const int AtlasColumns = 5;
         const int AtlasRows = 3;
@@ -99,7 +100,7 @@ namespace LearningWithJourney.Character
             if (greeting != null)
                 yield return SpeakRoutine(greeting, 0f);
             else
-                yield return TalkForDuration(2.8f);
+                yield return TalkForDuration(3.2f);
 
             HideSpeech();
             yield return GentlePoint();
@@ -128,7 +129,7 @@ namespace LearningWithJourney.Character
         IEnumerator SpeakExternalRoutine(AudioClip clip, string caption)
         {
             ShowSpeech(caption);
-            yield return SpeakRoutine(clip, 2.2f);
+            yield return SpeakRoutine(clip, 2.6f);
             HideSpeech();
             ResetVisualTransform();
             StartIdle();
@@ -145,7 +146,7 @@ namespace LearningWithJourney.Character
                 duration = clip.length;
             }
 
-            if (duration <= 0f) duration = 2.2f;
+            if (duration <= 0f) duration = 2.6f;
             yield return TalkForDuration(duration);
         }
 
@@ -178,7 +179,7 @@ namespace LearningWithJourney.Character
         IEnumerator CelebrateRoutine()
         {
             SetFrame(CelebratePose);
-            yield return GentleBounce(0.8f, 10f);
+            yield return GentleBounce(1.0f, 7f);
             SetFrame(IdleOpen);
             ResetVisualTransform();
             StartIdle();
@@ -204,21 +205,25 @@ namespace LearningWithJourney.Character
             while (true)
             {
                 SetFrame(IdleOpen);
-                yield return new WaitForSeconds(Random.Range(idlePauseMin, idlePauseMax));
 
-                // A quick natural blink instead of rapidly cycling all idle frames.
-                SetFrame(IdleSoft);
-                yield return new WaitForSeconds(0.10f);
+                // Long calm pause so Journey feels alive without constantly blinking.
+                float pause = Random.Range(idlePauseMin, idlePauseMax);
+                float elapsed = 0f;
+                while (elapsed < pause)
+                {
+                    float segment = Mathf.Min(1.8f, pause - elapsed);
+                    yield return GentleBounce(segment, 1.6f);
+                    elapsed += segment;
+                }
+
+                // One deliberate blink. No rapid multi-frame cycling.
                 SetFrame(BlinkHalf);
-                yield return new WaitForSeconds(0.08f);
+                yield return new WaitForSeconds(blinkHalfSeconds);
                 SetFrame(BlinkClosed);
-                yield return new WaitForSeconds(0.09f);
+                yield return new WaitForSeconds(blinkClosedSeconds);
                 SetFrame(BlinkHalf);
-                yield return new WaitForSeconds(0.07f);
+                yield return new WaitForSeconds(blinkHalfSeconds);
                 SetFrame(IdleOpen);
-
-                // Very subtle breathing movement while keeping the full body intact.
-                yield return GentleBounce(0.65f, 3.5f);
             }
         }
 
@@ -227,18 +232,18 @@ namespace LearningWithJourney.Character
             SetFrame(WavePose);
             if (rect == null)
             {
-                yield return new WaitForSeconds(1.35f);
+                yield return new WaitForSeconds(1.65f);
                 yield break;
             }
 
-            float duration = 1.35f;
+            float duration = 1.65f;
             float elapsed = 0f;
             while (elapsed < duration)
             {
                 elapsed += Time.deltaTime;
                 float t = Mathf.Clamp01(elapsed / duration);
-                float angle = Mathf.Sin(t * Mathf.PI * 2f) * 1.6f;
-                float lift = Mathf.Sin(t * Mathf.PI) * 5f;
+                float angle = Mathf.Sin(t * Mathf.PI * 2f) * 1.2f;
+                float lift = Mathf.Sin(t * Mathf.PI) * 3f;
                 rect.localRotation = Quaternion.Euler(0f, 0f, angle);
                 rect.anchoredPosition = baseAnchoredPosition + new Vector2(0f, lift);
                 yield return null;
@@ -253,17 +258,17 @@ namespace LearningWithJourney.Character
             SetFrame(PointLikePose);
             if (rect == null)
             {
-                yield return new WaitForSeconds(0.9f);
+                yield return new WaitForSeconds(1.15f);
                 yield break;
             }
 
-            float duration = 0.9f;
+            float duration = 1.15f;
             float elapsed = 0f;
             while (elapsed < duration)
             {
                 elapsed += Time.deltaTime;
                 float t = Mathf.Clamp01(elapsed / duration);
-                float nudge = Mathf.Sin(t * Mathf.PI) * 8f;
+                float nudge = Mathf.Sin(t * Mathf.PI) * 5f;
                 rect.anchoredPosition = baseAnchoredPosition + new Vector2(nudge, 0f);
                 yield return null;
             }
