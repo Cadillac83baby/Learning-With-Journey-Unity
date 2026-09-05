@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System.IO;
+using LearningWithJourney.Character;
 using LearningWithJourney.Core;
 using LearningWithJourney.UI;
 using TMPro;
@@ -17,12 +18,18 @@ namespace LearningWithJourney.EditorTools
     public static class LWJMainMenuBuilder
     {
         const string ScenePath = "Assets/LearningWithJourney/Scenes/MainMenu.unity";
-        const string GeneratedPath = "Assets/LearningWithJourney/Generated";
-        const string GradientPath = GeneratedPath + "/MainMenuGradient.png";
+        const string GeneratedPath = "Assets/LearningWithJourney/Generated/MainMenu";
+        const string ArtPath = "Assets/LearningWithJourney/Art/Journey";
+        const string JourneyAtlasPath = ArtPath + "/JourneyMenuAtlas.png";
+        const string GradientPath = GeneratedPath + "/ClassroomGradient.png";
+        const string FloorPath = GeneratedPath + "/FloorGradient.png";
         const string RoundedPath = GeneratedPath + "/RoundedPanel.png";
+        const string CirclePath = GeneratedPath + "/Circle.png";
 
         static Sprite roundedSprite;
-        static Sprite gradientSprite;
+        static Sprite circleSprite;
+        static Sprite wallGradient;
+        static Sprite floorGradient;
 
         [MenuItem("Learning with Journey/Build Polished Main Menu")]
         public static void BuildPolishedMainMenu()
@@ -33,7 +40,9 @@ namespace LearningWithJourney.EditorTools
                 return;
             }
 
-            EnsureGeneratedSprites();
+            EnsureGeneratedArt();
+            Directory.CreateDirectory(ArtPath);
+
             var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
             ClearScene(scene);
 
@@ -44,7 +53,7 @@ namespace LearningWithJourney.EditorTools
             var cameraGO = new GameObject("Main Camera");
             var camera = cameraGO.AddComponent<Camera>();
             camera.clearFlags = CameraClearFlags.SolidColor;
-            camera.backgroundColor = Hex("24183F");
+            camera.backgroundColor = Hex("2B1749");
             camera.orthographic = true;
             cameraGO.tag = "MainCamera";
 
@@ -60,149 +69,264 @@ namespace LearningWithJourney.EditorTools
             eventSystem.AddComponent<EventSystem>();
             eventSystem.AddComponent<StandaloneInputModule>();
 
-            var background = CreateImage(canvasGO.transform, "Background", gradientSprite, Color.white, Vector2.zero, Vector2.one);
-            background.type = Image.Type.Simple;
+            BuildClassroomBackground(canvasGO.transform);
 
-            // Soft layered background decoration.
-            CreateBubble(canvasGO.transform, new Vector2(.02f, .78f), new Vector2(.24f, .91f), Hex("FFFFFF", .10f));
-            CreateBubble(canvasGO.transform, new Vector2(.76f, .72f), new Vector2(1.03f, .88f), Hex("FFFFFF", .08f));
-            CreateBubble(canvasGO.transform, new Vector2(.63f, .02f), new Vector2(.98f, .18f), Hex("FFB7DE", .12f));
-            CreateStar(canvasGO.transform, "SkyStar1", "★", 44, new Vector2(.08f, .82f), Hex("FFF0A6"), 5f, 1.2f, .2f);
-            CreateStar(canvasGO.transform, "SkyStar2", "★", 30, new Vector2(.88f, .91f), Hex("FFFFFF", .75f), 8f, .9f, 1.4f);
-            CreateStar(canvasGO.transform, "SkyStar3", "✦", 34, new Vector2(.79f, .58f), Hex("FFD1EA", .85f), 6f, 1.1f, 2.1f);
+            // TOP HUD — styled after the approved visual reference.
+            var hudBack = CreatePanel(canvasGO.transform, "TopHUD", new Vector2(.025f, .917f), new Vector2(.975f, .985f), Hex("5A168B", .88f), true);
+            AddShadow(hudBack.gameObject, new Vector2(0, -7), Hex("1E0B35", .55f));
+            AddOutline(hudBack.gameObject, Hex("FFB9ED", .85f), new Vector2(3, -3));
 
-            var title = CreateText(canvasGO.transform, "BrandTitle", "Learning with Journey", 64, FontStyles.Bold, Color.white,
-                new Vector2(.06f, .905f), new Vector2(.94f, .965f));
-            title.alignment = TextAlignmentOptions.Center;
-            AddTextShadow(title.gameObject, new Vector2(0, -4), Hex("4A236B", .45f));
+            var avatar = CreatePanel(canvasGO.transform, "AvatarRing", new Vector2(.028f, .902f), new Vector2(.154f, .992f), Hex("7F21B4"), true);
+            AddOutline(avatar.gameObject, Hex("FFD94D"), new Vector2(4, -4));
+            AddShadow(avatar.gameObject, new Vector2(0, -7), Hex("2B0E47", .5f));
+            var avatarInner = CreatePanel(avatar.transform, "AvatarInner", new Vector2(.08f, .08f), new Vector2(.92f, .92f), Hex("F7A7CE"), true);
+            var avatarText = CreateText(avatarInner.transform, "AvatarText", "J", 64, FontStyles.Bold, Color.white, Vector2.zero, Vector2.one);
+            avatarText.alignment = TextAlignmentOptions.Center;
 
-            var tagline = CreateText(canvasGO.transform, "Tagline", "LEARN  •  GROW  •  SHINE", 25, FontStyles.Bold, Hex("FFF2B8"),
-                new Vector2(.20f, .875f), new Vector2(.80f, .91f));
+            var starPill = CreateStatPill(canvasGO.transform, "StarPill", "★", "0", new Vector2(.165f, .936f), new Vector2(.385f, .982f), Hex("E91E86"), Hex("FFD84D"));
+            var coinPill = CreateStatPill(canvasGO.transform, "CoinPill", "$", "0", new Vector2(.57f, .936f), new Vector2(.79f, .982f), Hex("5A168B"), Hex("FFD84D"));
+            var levelText = CreatePill(canvasGO.transform, "LevelPill", "Level 1", new Vector2(.405f, .936f), new Vector2(.55f, .982f), Hex("8E35C8"), 22);
+
+            // Brand title — stacked layers create the glossy 3D logo effect.
+            CreateLayeredTitle(canvasGO.transform);
+
+            var taglineRibbon = CreatePanel(canvasGO.transform, "TaglineRibbon", new Vector2(.31f, .747f), new Vector2(.78f, .793f), Hex("16B7B0"), true);
+            AddShadow(taglineRibbon.gameObject, new Vector2(0, -8), Hex("43125E", .55f));
+            AddOutline(taglineRibbon.gameObject, Hex("E9FFF9", .85f), new Vector2(2, -2));
+            var tagline = CreateText(taglineRibbon.transform, "Tagline", "LEARN  •  GROW  •  SHINE", 25, FontStyles.Bold, Color.white, new Vector2(.04f, .08f), new Vector2(.96f, .92f));
             tagline.alignment = TextAlignmentOptions.Center;
-            tagline.characterSpacing = 2f;
 
-            // Greeting row.
-            var greeting = CreateText(canvasGO.transform, "Greeting", "Hi, Little Star!", 34, FontStyles.Bold, Color.white,
-                new Vector2(.07f, .815f), new Vector2(.49f, .86f));
-            greeting.alignment = TextAlignmentOptions.Left;
+            // JOURNEY CHARACTER STAGE.
+            var rug = CreatePanel(canvasGO.transform, "JourneyRug", new Vector2(.02f, .285f), new Vector2(.48f, .55f), Hex("CF54B7", .82f), true);
+            AddShadow(rug.gameObject, new Vector2(0, -10), Hex("5B255E", .34f));
+            var rugInner = CreatePanel(rug.transform, "RugInner", new Vector2(.05f, .08f), new Vector2(.95f, .92f), Hex("E989CC", .58f), true);
+            AddOutline(rugInner.gameObject, Hex("FFDBF3", .55f), new Vector2(2, -2));
 
-            var level = CreatePill(canvasGO.transform, "LevelPill", "Level 1", new Vector2(.50f, .817f), new Vector2(.68f, .858f), Hex("FFFFFF", .18f), 24);
-            var starPill = CreateStatPill(canvasGO.transform, "StarPill", "★", "0", new Vector2(.69f, .817f), new Vector2(.82f, .858f), Hex("FFF0A6"));
-            var coinPill = CreateStatPill(canvasGO.transform, "CoinPill", "●", "0", new Vector2(.83f, .817f), new Vector2(.96f, .858f), Hex("FFD56A"));
+            var characterStage = new GameObject("JourneyCharacter", typeof(RectTransform), typeof(RawImage), typeof(AudioSource));
+            characterStage.transform.SetParent(canvasGO.transform, false);
+            var characterRect = (RectTransform)characterStage.transform;
+            characterRect.anchorMin = new Vector2(.035f, .335f);
+            characterRect.anchorMax = new Vector2(.47f, .72f);
+            characterRect.offsetMin = characterRect.offsetMax = Vector2.zero;
+            var characterRaw = characterStage.GetComponent<RawImage>();
+            characterRaw.color = Color.white;
+            characterRaw.raycastTarget = false;
 
-            // Hero panel / character stage.
-            var hero = CreatePanel(canvasGO.transform, "HeroPanel", new Vector2(.055f, .535f), new Vector2(.945f, .797f), Hex("FFFFFF", .15f), true);
-            AddShadow(hero.gameObject, new Vector2(0, -12), Hex("381C5A", .23f));
-            AddOutline(hero.gameObject, Hex("FFFFFF", .26f), new Vector2(2, -2));
+            Texture2D atlas = AssetDatabase.LoadAssetAtPath<Texture2D>(JourneyAtlasPath);
+            if (atlas != null)
+            {
+                characterRaw.texture = atlas;
+            }
+            else
+            {
+                characterRaw.color = new Color(1f, 1f, 1f, 0f);
+                var missing = CreatePanel(canvasGO.transform, "JourneyArtMissing", new Vector2(.055f, .42f), new Vector2(.44f, .625f), Hex("6E249C", .84f), true);
+                AddOutline(missing.gameObject, Hex("FFD3F0", .85f), new Vector2(2, -2));
+                var missingText = CreateText(missing.transform, "MissingText", "JOURNEY\nANIMATION ART\nREADY TO IMPORT", 27, FontStyles.Bold, Color.white, new Vector2(.08f, .12f), new Vector2(.92f, .88f));
+                missingText.alignment = TextAlignmentOptions.Center;
+            }
 
-            var adventureLabel = CreateText(hero.transform, "AdventureLabel", "TODAY'S ADVENTURE", 23, FontStyles.Bold, Hex("FFF0A6"),
-                new Vector2(.08f, .78f), new Vector2(.55f, .92f));
-            adventureLabel.alignment = TextAlignmentOptions.Left;
-            adventureLabel.characterSpacing = 1.5f;
+            var speechBubble = CreatePanel(canvasGO.transform, "JourneySpeechBubble", new Vector2(.255f, .575f), new Vector2(.59f, .69f), Color.white, true);
+            AddShadow(speechBubble.gameObject, new Vector2(0, -7), Hex("5C2476", .38f));
+            AddOutline(speechBubble.gameObject, Hex("7E2FA7"), new Vector2(3, -3));
+            var speechText = CreateText(speechBubble.transform, "SpeechText", "Hi! I’m Journey!", 25, FontStyles.Bold, Hex("54207F"), new Vector2(.08f, .12f), new Vector2(.92f, .88f));
+            speechText.alignment = TextAlignmentOptions.Center;
 
-            var heroTitle = CreateText(hero.transform, "HeroTitle", "Ready to learn\nwith Journey?", 49, FontStyles.Bold, Color.white,
-                new Vector2(.08f, .38f), new Vector2(.61f, .78f));
-            heroTitle.alignment = TextAlignmentOptions.Left;
-            heroTitle.lineSpacing = -6f;
+            var journeyController = characterStage.AddComponent<JourneyMainMenuCharacter>();
+            var journeySO = new SerializedObject(journeyController);
+            journeySO.FindProperty("characterImage").objectReferenceValue = characterRaw;
+            journeySO.FindProperty("atlas").objectReferenceValue = atlas;
+            journeySO.FindProperty("speechText").objectReferenceValue = speechText;
+            journeySO.FindProperty("speechBubble").objectReferenceValue = speechBubble.gameObject;
+            journeySO.FindProperty("voiceSource").objectReferenceValue = characterStage.GetComponent<AudioSource>();
+            journeySO.ApplyModifiedPropertiesWithoutUndo();
 
-            var heroSubtitle = CreateText(hero.transform, "HeroSubtitle", "Pick a game, earn stars, and shine!", 24, FontStyles.Normal, Hex("F7EFFF"),
-                new Vector2(.08f, .17f), new Vector2(.65f, .37f));
-            heroSubtitle.alignment = TextAlignmentOptions.Left;
+            // Re-play Journey button.
+            var voiceButton = CreateRoundButton(canvasGO.transform, "JourneyVoiceButton", "♪", new Vector2(.50f, .595f), new Vector2(.585f, .655f), Hex("EF3A95"));
+            UnityEventTools.AddPersistentListener(voiceButton.onClick, journeyController.PlayGreeting);
 
-            // Branded character slot. This is intentionally replaceable by Journey's final skeletal rig.
-            var medallion = CreatePanel(hero.transform, "JourneyCharacterSlot", new Vector2(.67f, .18f), new Vector2(.93f, .83f), Hex("FCE9FF", .94f), true);
-            AddShadow(medallion.gameObject, new Vector2(0, -8), Hex("381C5A", .24f));
-            var medallionFloat = medallion.gameObject.AddComponent<UIFloat>();
-            SetFloat(medallionFloat, 7f, 1.05f, .5f);
+            // GAME SELECT PANEL.
+            var gamePanel = CreatePanel(canvasGO.transform, "GamePanel", new Vector2(.49f, .285f), new Vector2(.97f, .695f), Hex("6B25A8", .96f), true);
+            AddShadow(gamePanel.gameObject, new Vector2(0, -13), Hex("2B0C4C", .55f));
+            AddOutline(gamePanel.gameObject, Hex("E5B6FF"), new Vector2(4, -4));
 
-            var crown = CreateText(medallion.transform, "Crown", "♛", 48, FontStyles.Bold, Hex("F0B84F"), new Vector2(.18f, .72f), new Vector2(.82f, .94f));
-            crown.alignment = TextAlignmentOptions.Center;
-            var j = CreateText(medallion.transform, "JourneyInitial", "J", 120, FontStyles.Bold, Hex("8E56C9"), new Vector2(.08f, .28f), new Vector2(.92f, .76f));
-            j.alignment = TextAlignmentOptions.Center;
-            var journeyLabel = CreateText(medallion.transform, "JourneyLabel", "JOURNEY", 21, FontStyles.Bold, Hex("6B3B98"), new Vector2(.12f, .08f), new Vector2(.88f, .30f));
-            journeyLabel.alignment = TextAlignmentOptions.Center;
+            var choose = CreateText(gamePanel.transform, "Choose", "CHOOSE A GAME", 30, FontStyles.Bold, Color.white, new Vector2(.08f, .87f), new Vector2(.92f, .97f));
+            choose.alignment = TextAlignmentOptions.Center;
 
-            // Game section label.
-            var chooseText = CreateText(canvasGO.transform, "ChooseText", "Choose a learning game", 30, FontStyles.Bold, Color.white,
-                new Vector2(.07f, .492f), new Vector2(.72f, .53f));
-            chooseText.alignment = TextAlignmentOptions.Left;
+            CreateGameTile(gamePanel.transform, "Counting", "123", "COUNTING", "Numbers 1–20", Hex("FFB12E"), new Vector2(.07f, .61f), new Vector2(.93f, .84f), router.OpenCounting);
+            CreateGameTile(gamePanel.transform, "ABC", "ABC", "ABC ADVENTURE", "Letters & sounds", Hex("F23B91"), new Vector2(.07f, .34f), new Vector2(.93f, .57f), router.OpenABC);
+            CreateGameTile(gamePanel.transform, "Match", "A+", "ALPHABET MATCH", "Match letters & pictures", Hex("23BDE2"), new Vector2(.07f, .07f), new Vector2(.93f, .30f), router.OpenAlphabetMatch);
 
-            CreateGameButton(canvasGO.transform, "CountingButton", "123", "Counting Adventure", "Count, tap, and learn numbers 1–20", Hex("F4A261"),
-                new Vector2(.055f, .375f), new Vector2(.945f, .485f), router.OpenCounting);
-            CreateGameButton(canvasGO.transform, "ABCButton", "ABC", "ABC Adventure", "Letters, sounds, and first words", Hex("E76BA8"),
-                new Vector2(.055f, .255f), new Vector2(.945f, .365f), router.OpenABC);
-            CreateGameButton(canvasGO.transform, "AlphabetMatchButton", "A+", "Alphabet Match", "Match each letter to the right picture", Hex("46B8B0"),
-                new Vector2(.055f, .135f), new Vector2(.945f, .245f), router.OpenAlphabetMatch);
+            // Big CTA treatment like the approved reference.
+            var startBanner = CreatePanel(canvasGO.transform, "StartBanner", new Vector2(.18f, .205f), new Vector2(.82f, .275f), Hex("28C928"), true);
+            AddShadow(startBanner.gameObject, new Vector2(0, -10), Hex("17600F", .7f));
+            AddOutline(startBanner.gameObject, Hex("E7FF83"), new Vector2(4, -4));
+            var startText = CreateText(startBanner.transform, "StartText", "PICK A GAME & PLAY!", 35, FontStyles.Bold, Color.white, new Vector2(.06f, .08f), new Vector2(.94f, .92f));
+            startText.alignment = TextAlignmentOptions.Center;
 
-            // Bottom navigation.
-            var nav = CreatePanel(canvasGO.transform, "BottomNav", new Vector2(.055f, .025f), new Vector2(.945f, .112f), Hex("FFFFFF", .16f), true);
-            AddOutline(nav.gameObject, Hex("FFFFFF", .22f), new Vector2(1, -1));
-            CreateNavButton(nav.transform, "Home", "⌂", "Home", new Vector2(.02f, .08f), new Vector2(.24f, .92f), null, true);
-            CreateNavButton(nav.transform, "Rewards", "★", "Rewards", new Vector2(.26f, .08f), new Vector2(.49f, .92f), router.OpenRewards, false);
-            CreateNavButton(nav.transform, "Library", "▤", "Library", new Vector2(.51f, .08f), new Vector2(.74f, .92f), router.OpenLibrary, false);
-            CreateNavButton(nav.transform, "Parents", "⚙", "Parents", new Vector2(.76f, .08f), new Vector2(.98f, .92f), router.OpenParentZone, false);
+            // Bottom navigation tiles.
+            var navBack = CreatePanel(canvasGO.transform, "BottomNavBack", new Vector2(.015f, .018f), new Vector2(.985f, .178f), Hex("4B0D86", .98f), true);
+            AddShadow(navBack.gameObject, new Vector2(0, -8), Hex("170527", .72f));
+            AddOutline(navBack.gameObject, Hex("8D38D2"), new Vector2(3, -3));
 
+            CreateNavTile(navBack.transform, "HomeTile", "HOME", "●", Hex("E63A93"), new Vector2(.02f, .08f), new Vector2(.245f, .92f), null, true);
+            CreateNavTile(navBack.transform, "LibraryTile", "LIBRARY", "ABC", Hex("1FAFE0"), new Vector2(.26f, .08f), new Vector2(.49f, .92f), router.OpenLibrary, false);
+            CreateNavTile(navBack.transform, "RewardsTile", "REWARDS", "★", Hex("F59F24"), new Vector2(.505f, .08f), new Vector2(.735f, .92f), router.OpenRewards, false);
+            CreateNavTile(navBack.transform, "ParentsTile", "PARENT ZONE", "⚙", Hex("8D3AD0"), new Vector2(.75f, .08f), new Vector2(.98f, .92f), router.OpenParentZone, false);
+
+            // HUD binding.
             var hud = canvasGO.AddComponent<MainMenuHud>();
-            var so = new SerializedObject(hud);
-            so.FindProperty("starText").objectReferenceValue = starPill.count;
-            so.FindProperty("coinText").objectReferenceValue = coinPill.count;
-            so.FindProperty("playerText").objectReferenceValue = greeting;
-            so.FindProperty("levelText").objectReferenceValue = level;
-            so.ApplyModifiedPropertiesWithoutUndo();
+            var hudSO = new SerializedObject(hud);
+            hudSO.FindProperty("starText").objectReferenceValue = starPill.count;
+            hudSO.FindProperty("coinText").objectReferenceValue = coinPill.count;
+            hudSO.FindProperty("playerText").objectReferenceValue = null;
+            hudSO.FindProperty("levelText").objectReferenceValue = levelText;
+            hudSO.ApplyModifiedPropertiesWithoutUndo();
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, ScenePath);
             Selection.activeGameObject = canvasGO;
-            EditorUtility.DisplayDialog("Learning with Journey", "Polished Main Menu v1 is ready. Open the Game tab in 1080x1920 portrait to preview it.", "OK");
+
+            string message = atlas != null
+                ? "Reference-style Main Menu v2 is ready with animated Journey. Press Play to preview her movement."
+                : "Reference-style Main Menu v2 is ready. Add JourneyMenuAtlas.png to Assets/LearningWithJourney/Art/Journey, then run this builder again to activate Journey's animation.";
+            EditorUtility.DisplayDialog("Learning with Journey", message, "OK");
         }
 
-        static void ClearScene(Scene scene)
+        static void BuildClassroomBackground(Transform parent)
         {
-            foreach (var root in scene.GetRootGameObjects())
-                Object.DestroyImmediate(root);
+            var wall = CreateImage(parent, "ClassroomWall", wallGradient, Color.white, Vector2.zero, Vector2.one);
+            wall.type = Image.Type.Simple;
+
+            // Warm wood floor.
+            var floor = CreateImage(parent, "Floor", floorGradient, Color.white, new Vector2(0, 0), new Vector2(1, .42f));
+            floor.type = Image.Type.Simple;
+
+            // Window with layered sky.
+            var window = CreatePanel(parent, "Window", new Vector2(.015f, .48f), new Vector2(.39f, .86f), Hex("F9D7EE"), true);
+            AddShadow(window.gameObject, new Vector2(7, -8), Hex("7A355A", .3f));
+            var sky = CreatePanel(window.transform, "Sky", new Vector2(.07f, .07f), new Vector2(.93f, .93f), Hex("49B8F2"), true);
+            CreateBubble(sky.transform, "Cloud1", new Vector2(.08f, .66f), new Vector2(.48f, .84f), Hex("FFFFFF", .85f));
+            CreateBubble(sky.transform, "Cloud2", new Vector2(.55f, .48f), new Vector2(.90f, .65f), Hex("FFFFFF", .72f));
+            CreateRect(sky.transform, "WindowBarV", new Vector2(.485f, 0), new Vector2(.515f, 1), Hex("FFFFFF", .85f));
+            CreateRect(sky.transform, "WindowBarH", new Vector2(0, .48f), new Vector2(1, .52f), Hex("FFFFFF", .85f));
+
+            // Shelves / books on the right.
+            var shelf = CreatePanel(parent, "Bookshelf", new Vector2(.78f, .39f), new Vector2(.985f, .82f), Hex("B86A4E"), true);
+            AddShadow(shelf.gameObject, new Vector2(-8, -7), Hex("6E2D32", .32f));
+            for (int i = 0; i < 3; i++)
+            {
+                float y = .18f + i * .27f;
+                CreateRect(shelf.transform, "ShelfBoard" + i, new Vector2(.04f, y), new Vector2(.96f, y + .035f), Hex("7A382D"));
+                for (int b = 0; b < 4; b++)
+                {
+                    Color c = b % 4 == 0 ? Hex("F24793") : b % 4 == 1 ? Hex("35B8D8") : b % 4 == 2 ? Hex("F8B32B") : Hex("7FCB4B");
+                    float x = .10f + b * .20f;
+                    CreatePanel(shelf.transform, "Book" + i + "_" + b, new Vector2(x, y + .05f), new Vector2(x + .13f, y + .20f), c, true);
+                }
+            }
+
+            // Rainbow wall decoration.
+            CreateBubble(parent, "RainbowPurple", new Vector2(.63f, .67f), new Vector2(.93f, .86f), Hex("A64DDA", .35f));
+            CreateBubble(parent, "RainbowBlue", new Vector2(.66f, .69f), new Vector2(.91f, .84f), Hex("3BC4E8", .42f));
+            CreateBubble(parent, "RainbowYellow", new Vector2(.69f, .71f), new Vector2(.89f, .82f), Hex("FFD153", .48f));
+            CreateBubble(parent, "RainbowPink", new Vector2(.72f, .73f), new Vector2(.87f, .80f), Hex("F76DB0", .55f));
+
+            // Decorative sparkles/hearts.
+            CreateDecorativeText(parent, "Spark1", "★", 42, Hex("FFD83D"), new Vector2(.18f, .82f));
+            CreateDecorativeText(parent, "Spark2", "✦", 28, Color.white, new Vector2(.72f, .84f));
+            CreateDecorativeText(parent, "Heart1", "♥", 39, Hex("F13B8C"), new Vector2(.83f, .77f));
+            CreateDecorativeText(parent, "Spark3", "★", 32, Hex("FFD83D"), new Vector2(.08f, .60f));
+            CreateDecorativeText(parent, "Heart2", "♥", 34, Hex("B251E1"), new Vector2(.16f, .25f));
         }
 
-        static void EnsureGeneratedSprites()
+        static void CreateLayeredTitle(Transform parent)
+        {
+            var shadow = CreateText(parent, "LogoShadow", "Learning\nwith Journey", 76, FontStyles.Bold, Hex("3D0C68"), new Vector2(.235f, .795f), new Vector2(.86f, .92f));
+            shadow.alignment = TextAlignmentOptions.Center;
+            shadow.lineSpacing = -18f;
+
+            var outline = CreateText(parent, "LogoOutline", "Learning\nwith Journey", 73, FontStyles.Bold, Hex("FFFFFF"), new Vector2(.225f, .802f), new Vector2(.85f, .927f));
+            outline.alignment = TextAlignmentOptions.Center;
+            outline.lineSpacing = -18f;
+            AddOutline(outline.gameObject, Hex("5A168B"), new Vector2(4, -4));
+
+            var title = CreateText(parent, "LogoTitle", "Learning\nwith Journey", 70, FontStyles.Bold, Color.white, new Vector2(.225f, .806f), new Vector2(.85f, .931f));
+            title.alignment = TextAlignmentOptions.Center;
+            title.lineSpacing = -18f;
+            title.colorGradient = new VertexGradient(Color.white, Color.white, Hex("FFD6EC"), Hex("F55AA9"));
+        }
+
+        static void EnsureGeneratedArt()
         {
             Directory.CreateDirectory(GeneratedPath);
 
-            const int gh = 256;
-            var gradient = new Texture2D(16, gh, TextureFormat.RGBA32, false);
-            var bottom = Hex("6E3FA5");
-            var middle = Hex("A15FD0");
-            var top = Hex("C47BD9");
-            for (int y = 0; y < gh; y++)
-            {
-                var t = y / (float)(gh - 1);
-                var color = t < .55f ? Color.Lerp(bottom, middle, t / .55f) : Color.Lerp(middle, top, (t - .55f) / .45f);
-                for (int x = 0; x < gradient.width; x++) gradient.SetPixel(x, y, color);
-            }
-            gradient.Apply();
-            File.WriteAllBytes(GradientPath, gradient.EncodeToPNG());
-            Object.DestroyImmediate(gradient);
-            ConfigureSprite(GradientPath, Vector4.zero);
+            MakeVerticalGradient(GradientPath, Hex("F7A4C8"), Hex("F58DB8"), Hex("C96BB4"));
+            MakeVerticalGradient(FloorPath, Hex("D68A52"), Hex("C57645"), Hex("9A5037"));
+            MakeRoundedTexture(RoundedPath, 128, 28);
+            MakeCircleTexture(CirclePath, 128);
 
-            const int size = 128;
-            const int radius = 28;
-            var rounded = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            AssetDatabase.Refresh();
+            wallGradient = AssetDatabase.LoadAssetAtPath<Sprite>(GradientPath);
+            floorGradient = AssetDatabase.LoadAssetAtPath<Sprite>(FloorPath);
+            roundedSprite = AssetDatabase.LoadAssetAtPath<Sprite>(RoundedPath);
+            circleSprite = AssetDatabase.LoadAssetAtPath<Sprite>(CirclePath);
+        }
+
+        static void MakeVerticalGradient(string path, Color top, Color middle, Color bottom)
+        {
+            const int width = 16;
+            const int height = 256;
+            var tex = new Texture2D(width, height, TextureFormat.RGBA32, false);
+            for (int y = 0; y < height; y++)
+            {
+                float t = y / (float)(height - 1);
+                Color c = t < .55f ? Color.Lerp(bottom, middle, t / .55f) : Color.Lerp(middle, top, (t - .55f) / .45f);
+                for (int x = 0; x < width; x++) tex.SetPixel(x, y, c);
+            }
+            tex.Apply();
+            File.WriteAllBytes(path, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            ConfigureSprite(path, Vector4.zero);
+        }
+
+        static void MakeRoundedTexture(string path, int size, int radius)
+        {
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
             for (int y = 0; y < size; y++)
             {
                 for (int x = 0; x < size; x++)
                 {
-                    var dx = Mathf.Max(radius - x, 0, x - (size - 1 - radius));
-                    var dy = Mathf.Max(radius - y, 0, y - (size - 1 - radius));
-                    var inside = (dx * dx) + (dy * dy) <= radius * radius;
-                    rounded.SetPixel(x, y, inside ? Color.white : new Color(1, 1, 1, 0));
+                    int dx = Mathf.Max(radius - x, 0, x - (size - 1 - radius));
+                    int dy = Mathf.Max(radius - y, 0, y - (size - 1 - radius));
+                    bool inside = dx * dx + dy * dy <= radius * radius;
+                    tex.SetPixel(x, y, inside ? Color.white : new Color(1, 1, 1, 0));
                 }
             }
-            rounded.Apply();
-            File.WriteAllBytes(RoundedPath, rounded.EncodeToPNG());
-            Object.DestroyImmediate(rounded);
-            ConfigureSprite(RoundedPath, new Vector4(radius, radius, radius, radius));
+            tex.Apply();
+            File.WriteAllBytes(path, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            ConfigureSprite(path, new Vector4(radius, radius, radius, radius));
+        }
 
-            AssetDatabase.Refresh();
-            gradientSprite = AssetDatabase.LoadAssetAtPath<Sprite>(GradientPath);
-            roundedSprite = AssetDatabase.LoadAssetAtPath<Sprite>(RoundedPath);
+        static void MakeCircleTexture(string path, int size)
+        {
+            var tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+            float center = (size - 1) * .5f;
+            float radius = center - 1f;
+            for (int y = 0; y < size; y++)
+            {
+                for (int x = 0; x < size; x++)
+                {
+                    float d = Vector2.Distance(new Vector2(x, y), new Vector2(center, center));
+                    float a = Mathf.Clamp01(radius - d + 1f);
+                    tex.SetPixel(x, y, new Color(1, 1, 1, a));
+                }
+            }
+            tex.Apply();
+            File.WriteAllBytes(path, tex.EncodeToPNG());
+            Object.DestroyImmediate(tex);
+            ConfigureSprite(path, Vector4.zero);
         }
 
         static void ConfigureSprite(string path, Vector4 border)
@@ -218,11 +342,26 @@ namespace LearningWithJourney.EditorTools
             importer.SaveAndReimport();
         }
 
+        static void ClearScene(Scene scene)
+        {
+            foreach (var root in scene.GetRootGameObjects()) Object.DestroyImmediate(root);
+        }
+
         static Image CreatePanel(Transform parent, string name, Vector2 min, Vector2 max, Color color, bool sliced)
         {
             var image = CreateImage(parent, name, roundedSprite, color, min, max);
             image.type = sliced ? Image.Type.Sliced : Image.Type.Simple;
             return image;
+        }
+
+        static Image CreateBubble(Transform parent, string name, Vector2 min, Vector2 max, Color color)
+        {
+            return CreateImage(parent, name, circleSprite, color, min, max);
+        }
+
+        static Image CreateRect(Transform parent, string name, Vector2 min, Vector2 max, Color color)
+        {
+            return CreateImage(parent, name, null, color, min, max);
         }
 
         static Image CreateImage(Transform parent, string name, Sprite sprite, Color color, Vector2 min, Vector2 max)
@@ -236,6 +375,7 @@ namespace LearningWithJourney.EditorTools
             var image = go.GetComponent<Image>();
             image.sprite = sprite;
             image.color = color;
+            image.raycastTarget = false;
             return image;
         }
 
@@ -253,111 +393,133 @@ namespace LearningWithJourney.EditorTools
             text.fontStyle = style;
             text.color = color;
             text.enableWordWrapping = true;
+            text.raycastTarget = false;
             return text;
         }
 
-        static TMP_Text CreatePill(Transform parent, string name, string textValue, Vector2 min, Vector2 max, Color color, float fontSize)
+        static TMP_Text CreatePill(Transform parent, string name, string value, Vector2 min, Vector2 max, Color color, float fontSize)
         {
             var pill = CreatePanel(parent, name, min, max, color, true);
-            var text = CreateText(pill.transform, "Text", textValue, fontSize, FontStyles.Bold, Color.white, new Vector2(.08f, .08f), new Vector2(.92f, .92f));
+            AddShadow(pill.gameObject, new Vector2(0, -5), Hex("2D0E4C", .45f));
+            var text = CreateText(pill.transform, "Text", value, fontSize, FontStyles.Bold, Color.white, new Vector2(.07f, .08f), new Vector2(.93f, .92f));
             text.alignment = TextAlignmentOptions.Center;
             return text;
         }
 
-        struct StatPill
-        {
-            public TMP_Text count;
-        }
+        struct StatPill { public TMP_Text count; }
 
-        static StatPill CreateStatPill(Transform parent, string name, string icon, string value, Vector2 min, Vector2 max, Color iconColor)
+        static StatPill CreateStatPill(Transform parent, string name, string icon, string value, Vector2 min, Vector2 max, Color color, Color iconColor)
         {
-            var pill = CreatePanel(parent, name, min, max, Hex("FFFFFF", .18f), true);
-            var iconText = CreateText(pill.transform, "Icon", icon, 24, FontStyles.Bold, iconColor, new Vector2(.08f, .12f), new Vector2(.42f, .88f));
+            var pill = CreatePanel(parent, name, min, max, color, true);
+            AddShadow(pill.gameObject, new Vector2(0, -6), Hex("2B0C48", .55f));
+            AddOutline(pill.gameObject, Hex("FFB7EC", .75f), new Vector2(2, -2));
+            var iconText = CreateText(pill.transform, "Icon", icon, 34, FontStyles.Bold, iconColor, new Vector2(.03f, .05f), new Vector2(.34f, .95f));
             iconText.alignment = TextAlignmentOptions.Center;
-            var count = CreateText(pill.transform, "Count", value, 23, FontStyles.Bold, Color.white, new Vector2(.40f, .12f), new Vector2(.92f, .88f));
+            var count = CreateText(pill.transform, "Count", value, 31, FontStyles.Bold, Color.white, new Vector2(.30f, .05f), new Vector2(.95f, .95f));
             count.alignment = TextAlignmentOptions.Center;
             return new StatPill { count = count };
         }
 
-        static void CreateGameButton(Transform parent, string name, string icon, string title, string subtitle, Color accent, Vector2 min, Vector2 max, UnityAction action)
+        static void CreateGameTile(Transform parent, string name, string icon, string title, string subtitle, Color color, Vector2 min, Vector2 max, UnityAction action)
         {
-            var panel = CreatePanel(parent, name, min, max, Hex("FFFFFF", .94f), true);
-            AddShadow(panel.gameObject, new Vector2(0, -10), Hex("32184E", .25f));
+            var shadow = CreatePanel(parent, name + "Shadow", min + new Vector2(0, -.012f), max + new Vector2(0, -.012f), Hex("2A0A49", .62f), true);
+            shadow.raycastTarget = false;
 
-            var button = panel.gameObject.AddComponent<Button>();
-            var colors = button.colors;
-            colors.normalColor = Color.white;
-            colors.highlightedColor = new Color(.98f, .98f, 1f, 1f);
-            colors.pressedColor = new Color(.91f, .89f, .96f, 1f);
-            colors.selectedColor = Color.white;
-            colors.fadeDuration = .08f;
-            button.colors = colors;
-            button.navigation = new Navigation { mode = Navigation.Mode.None };
-            if (action != null) UnityEventTools.AddPersistentListener(button.onClick, action);
-
-            var iconPanel = CreatePanel(panel.transform, "IconPanel", new Vector2(.035f, .16f), new Vector2(.23f, .84f), accent, true);
-            var iconText = CreateText(iconPanel.transform, "Icon", icon, 38, FontStyles.Bold, Color.white, new Vector2(.05f, .05f), new Vector2(.95f, .95f));
-            iconText.alignment = TextAlignmentOptions.Center;
-
-            var titleText = CreateText(panel.transform, "Title", title, 32, FontStyles.Bold, Hex("4A2A68"), new Vector2(.27f, .48f), new Vector2(.84f, .84f));
-            titleText.alignment = TextAlignmentOptions.Left;
-            var subtitleText = CreateText(panel.transform, "Subtitle", subtitle, 21, FontStyles.Normal, Hex("725B82"), new Vector2(.27f, .16f), new Vector2(.84f, .51f));
-            subtitleText.alignment = TextAlignmentOptions.Left;
-            var arrow = CreateText(panel.transform, "Arrow", "›", 48, FontStyles.Bold, accent, new Vector2(.86f, .20f), new Vector2(.96f, .80f));
-            arrow.alignment = TextAlignmentOptions.Center;
-        }
-
-        static void CreateNavButton(Transform parent, string name, string icon, string label, Vector2 min, Vector2 max, UnityAction action, bool active)
-        {
-            var go = new GameObject(name, typeof(RectTransform), typeof(Button));
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
             var rect = (RectTransform)go.transform;
             rect.anchorMin = min;
             rect.anchorMax = max;
             rect.offsetMin = rect.offsetMax = Vector2.zero;
-            var button = go.GetComponent<Button>();
-            button.transition = Selectable.Transition.None;
-            button.navigation = new Navigation { mode = Navigation.Mode.None };
-            if (action != null) UnityEventTools.AddPersistentListener(button.onClick, action);
+            var image = go.GetComponent<Image>();
+            image.sprite = roundedSprite;
+            image.type = Image.Type.Sliced;
+            image.color = color;
+            AddOutline(go, Hex("FFFFFF", .82f), new Vector2(3, -3));
 
-            var color = active ? Hex("FFF0A6") : Hex("FFFFFF", .82f);
-            var iconText = CreateText(go.transform, "Icon", icon, 28, FontStyles.Bold, color, new Vector2(.05f, .43f), new Vector2(.95f, .94f));
+            var highlight = CreatePanel(go.transform, "Gloss", new Vector2(.035f, .63f), new Vector2(.965f, .94f), new Color(1, 1, 1, .18f), true);
+            highlight.raycastTarget = false;
+            var iconBack = CreatePanel(go.transform, "IconBack", new Vector2(.035f, .12f), new Vector2(.27f, .88f), Color.white, true);
+            AddShadow(iconBack.gameObject, new Vector2(0, -4), Hex("5F244F", .27f));
+            var iconText = CreateText(iconBack.transform, "Icon", icon, 42, FontStyles.Bold, color, new Vector2(.05f, .05f), new Vector2(.95f, .95f));
             iconText.alignment = TextAlignmentOptions.Center;
-            var labelText = CreateText(go.transform, "Label", label, 17, active ? FontStyles.Bold : FontStyles.Normal, color, new Vector2(.04f, .06f), new Vector2(.96f, .46f));
-            labelText.alignment = TextAlignmentOptions.Center;
+            var titleText = CreateText(go.transform, "Title", title, 29, FontStyles.Bold, Color.white, new Vector2(.31f, .47f), new Vector2(.95f, .88f));
+            titleText.alignment = TextAlignmentOptions.Left;
+            var sub = CreateText(go.transform, "Subtitle", subtitle, 20, FontStyles.Normal, Color.white, new Vector2(.31f, .15f), new Vector2(.95f, .49f));
+            sub.alignment = TextAlignmentOptions.Left;
+
+            var button = go.GetComponent<Button>();
+            button.targetGraphic = image;
+            var colors = button.colors;
+            colors.normalColor = Color.white;
+            colors.highlightedColor = new Color(1f, 1f, 1f, .94f);
+            colors.pressedColor = new Color(.87f, .87f, .87f, 1f);
+            colors.selectedColor = Color.white;
+            colors.fadeDuration = .08f;
+            button.colors = colors;
+            UnityEventTools.AddPersistentListener(button.onClick, action);
         }
 
-        static void CreateBubble(Transform parent, Vector2 min, Vector2 max, Color color)
+        static Button CreateRoundButton(Transform parent, string name, string label, Vector2 min, Vector2 max, Color color)
         {
-            var image = CreatePanel(parent, "GlowBubble", min, max, color, true);
-            image.raycastTarget = false;
-        }
-
-        static void CreateStar(Transform parent, string name, string symbol, float size, Vector2 anchor, Color color, float amplitude, float speed, float phase)
-        {
-            var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image), typeof(Button));
             go.transform.SetParent(parent, false);
             var rect = (RectTransform)go.transform;
-            rect.anchorMin = rect.anchorMax = anchor;
-            rect.sizeDelta = new Vector2(size * 1.8f, size * 1.8f);
-            rect.anchoredPosition = Vector2.zero;
-            var text = go.GetComponent<TextMeshProUGUI>();
-            text.text = symbol;
-            text.fontSize = size;
-            text.fontStyle = FontStyles.Bold;
-            text.color = color;
+            rect.anchorMin = min;
+            rect.anchorMax = max;
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            var image = go.GetComponent<Image>();
+            image.sprite = circleSprite;
+            image.color = color;
+            AddShadow(go, new Vector2(0, -6), Hex("52145D", .45f));
+            AddOutline(go, Color.white, new Vector2(2, -2));
+            var text = CreateText(go.transform, "Label", label, 38, FontStyles.Bold, Color.white, new Vector2(.12f, .12f), new Vector2(.88f, .88f));
             text.alignment = TextAlignmentOptions.Center;
-            text.raycastTarget = false;
-            var floating = go.AddComponent<UIFloat>();
-            SetFloat(floating, amplitude, speed, phase);
+            var button = go.GetComponent<Button>();
+            button.targetGraphic = image;
+            return button;
         }
 
-        static void SetFloat(UIFloat floating, float amplitude, float speed, float phase)
+        static void CreateNavTile(Transform parent, string name, string title, string icon, Color color, Vector2 min, Vector2 max, UnityAction action, bool selected)
         {
+            var shadow = CreatePanel(parent, name + "Shadow", min + new Vector2(0, -.035f), max + new Vector2(0, -.035f), Hex("210635", .72f), true);
+            shadow.raycastTarget = false;
+
+            var go = new GameObject(name, typeof(RectTransform), typeof(Image));
+            go.transform.SetParent(parent, false);
+            var rect = (RectTransform)go.transform;
+            rect.anchorMin = min;
+            rect.anchorMax = max;
+            rect.offsetMin = rect.offsetMax = Vector2.zero;
+            var image = go.GetComponent<Image>();
+            image.sprite = roundedSprite;
+            image.type = Image.Type.Sliced;
+            image.color = color;
+            AddOutline(go, selected ? Hex("FFF28A") : Hex("FFFFFF", .55f), new Vector2(selected ? 4 : 2, selected ? -4 : -2));
+
+            var gloss = CreatePanel(go.transform, "Gloss", new Vector2(.05f, .66f), new Vector2(.95f, .94f), new Color(1, 1, 1, .18f), true);
+            gloss.raycastTarget = false;
+            var iconText = CreateText(go.transform, "Icon", icon, 34, FontStyles.Bold, Color.white, new Vector2(.08f, .40f), new Vector2(.92f, .88f));
+            iconText.alignment = TextAlignmentOptions.Center;
+            var titleText = CreateText(go.transform, "Title", title, 17, FontStyles.Bold, Color.white, new Vector2(.04f, .08f), new Vector2(.96f, .38f));
+            titleText.alignment = TextAlignmentOptions.Center;
+
+            if (action != null)
+            {
+                var button = go.AddComponent<Button>();
+                button.targetGraphic = image;
+                UnityEventTools.AddPersistentListener(button.onClick, action);
+            }
+        }
+
+        static void CreateDecorativeText(Transform parent, string name, string value, float size, Color color, Vector2 center)
+        {
+            var text = CreateText(parent, name, value, size, FontStyles.Bold, color, center - new Vector2(.035f, .025f), center + new Vector2(.035f, .025f));
+            text.alignment = TextAlignmentOptions.Center;
+            var floating = text.gameObject.AddComponent<UIFloat>();
             var so = new SerializedObject(floating);
-            so.FindProperty("amplitude").floatValue = amplitude;
-            so.FindProperty("speed").floatValue = speed;
-            so.FindProperty("phase").floatValue = phase;
+            if (so.FindProperty("amplitude") != null) so.FindProperty("amplitude").floatValue = 5f;
+            if (so.FindProperty("speed") != null) so.FindProperty("speed").floatValue = 1.2f;
             so.ApplyModifiedPropertiesWithoutUndo();
         }
 
@@ -367,11 +529,6 @@ namespace LearningWithJourney.EditorTools
             shadow.effectDistance = distance;
             shadow.effectColor = color;
             shadow.useGraphicAlpha = true;
-        }
-
-        static void AddTextShadow(GameObject go, Vector2 distance, Color color)
-        {
-            AddShadow(go, distance, color);
         }
 
         static void AddOutline(GameObject go, Color color, Vector2 distance)
@@ -384,9 +541,10 @@ namespace LearningWithJourney.EditorTools
 
         static Color Hex(string hex, float alpha = 1f)
         {
-            if (!ColorUtility.TryParseHtmlString("#" + hex, out var color)) color = Color.white;
-            color.a = alpha;
-            return color;
+            if (!hex.StartsWith("#")) hex = "#" + hex;
+            ColorUtility.TryParseHtmlString(hex, out var c);
+            c.a = alpha;
+            return c;
         }
     }
 }
