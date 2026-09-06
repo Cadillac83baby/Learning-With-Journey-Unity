@@ -50,9 +50,10 @@ namespace LearningWithJourney.EditorTools
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            // Always finish the recommended build with the approved Learning with Journey
-            // logo artwork on every face-down matching card.
-            LWJAlphabetMatchCardBackV3.ApplySilently();
+            // V5 rebuilds the approved Learning with Journey card-back artwork from embedded,
+            // verified image bytes. This avoids any dependency on Git transporting a binary
+            // JPG correctly and makes future rebuilds reliable.
+            LWJAlphabetMatchCardBackRepairV5.ApplySilently();
 
             EditorUtility.DisplayDialog(
                 "Learning with Journey",
