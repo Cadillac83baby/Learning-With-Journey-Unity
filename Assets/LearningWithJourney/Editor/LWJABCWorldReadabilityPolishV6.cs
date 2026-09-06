@@ -40,7 +40,7 @@ namespace LearningWithJourney.EditorTools
                 wordText.fontSizeMin = 28f;
                 wordText.fontSizeMax = 38f;
                 wordText.alignment = TextAlignmentOptions.Center;
-                wordText.enableWordWrapping = true;
+                wordText.textWrappingMode = TextWrappingModes.Normal;
                 wordText.color = Hex("4D286F");
 
                 var r = wordText.rectTransform;
@@ -92,7 +92,7 @@ namespace LearningWithJourney.EditorTools
             if (feedback != null)
             {
                 feedback.fontStyle = FontStyles.Bold;
-                feedback.enableWordWrapping = true;
+                feedback.textWrappingMode = TextWrappingModes.Normal;
                 feedback.color = Hex("45256E");
 
                 var r = feedback.rectTransform;
