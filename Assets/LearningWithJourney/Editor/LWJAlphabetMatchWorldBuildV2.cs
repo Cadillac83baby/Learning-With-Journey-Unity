@@ -50,9 +50,13 @@ namespace LearningWithJourney.EditorTools
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
+            // Always finish the recommended build with the approved Learning with Journey
+            // logo artwork on every face-down matching card.
+            LWJAlphabetMatchCardBackV3.ApplySilently();
+
             EditorUtility.DisplayDialog(
                 "Learning with Journey",
-                "Alphabet Match World V2 is built and polished. The matching cards now move cleanly into 2-pair, 3-pair, and 4-pair layouts without stray shadow blocks.",
+                "Alphabet Match World V2 is built and polished. The cards move cleanly into the 2-pair, 3-pair, and 4-pair layouts, and every face-down card uses the approved Learning with Journey logo artwork.",
                 "OK");
         }
     }
