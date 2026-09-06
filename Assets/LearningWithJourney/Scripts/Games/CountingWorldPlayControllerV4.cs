@@ -131,7 +131,9 @@ namespace LearningWithJourney.Games
                 var button = countObject.GetComponent<Button>();
                 if (button == null) button = countObject.AddComponent<Button>();
                 button.targetGraphic = image;
-                button.transition = Selectable.Transition.ColorTint;
+                button.transition = objectVisuals[i] != null
+                    ? Selectable.Transition.None
+                    : Selectable.Transition.ColorTint;
                 button.navigation = new Navigation { mode = Navigation.Mode.None };
                 button.onClick.RemoveAllListeners();
                 button.onClick.AddListener(() => TapObject(index));
@@ -258,7 +260,8 @@ namespace LearningWithJourney.Games
             assignedNumbers[index] = tappedCount;
 
             var image = countObject.GetComponent<Image>();
-            if (image != null)
+            bool usesThemeVisual = objectVisuals != null && index < objectVisuals.Length && objectVisuals[index] != null;
+            if (image != null && !usesThemeVisual)
                 image.color = Color.Lerp(originalColors[index], Color.white, .20f);
 
             if (countBadges != null && index < countBadges.Length && countBadges[index] != null)
