@@ -19,9 +19,6 @@ namespace LearningWithJourney.EditorTools
             if (!File.Exists(ScenePath)) return;
             var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
 
-            // V1 used temporary sibling shadow blocks while constructing the reusable card grid.
-            // Remove those blocks and place the shadow directly on each moving card so the
-            // runtime 2/3/4-pair layouts stay clean and aligned.
             for (int i = 1; i <= 8; i++)
             {
                 var oldShadow = GameObject.Find("MatchCardShadow" + i);
@@ -50,14 +47,11 @@ namespace LearningWithJourney.EditorTools
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            // V6 creates the Learning with Journey logo entirely from Unity UI/TMP.
-            // No external image or Sprite import is required, so rebuilds cannot fail
-            // because of a corrupt or unreadable artwork file.
-            LWJAlphabetMatchCardBackLogoV6.ApplySilently();
+            LWJAlphabetMatchCardBackLogoV7.ApplySilently();
 
             EditorUtility.DisplayDialog(
                 "Learning with Journey",
-                "Alphabet Match World V2 is built and polished. The cards move cleanly into the 2-pair, 3-pair, and 4-pair layouts, and every face-down card uses the sprite-free Learning with Journey branded logo back.",
+                "Alphabet Match World V2 is built and polished. The cards move cleanly into the 2-pair, 3-pair, and 4-pair layouts, and every face-down card uses the larger V7 Learning with Journey branded back.",
                 "OK");
         }
     }
