@@ -1,5 +1,6 @@
 #if UNITY_EDITOR
 using System.IO;
+using System.Linq;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
@@ -40,12 +41,14 @@ namespace LearningWithJourney.EditorTools
                 return;
             }
 
-            ConfigureCardBackImporter();
-            var cardBackSprite = AssetDatabase.LoadAssetAtPath<Sprite>(CardBackPath);
+            var cardBackSprite = LoadCardBackSprite();
             if (cardBackSprite == null)
             {
                 if (showDialog)
-                    EditorUtility.DisplayDialog("Learning with Journey", "Unity could not load the approved matching-card artwork as a Sprite.", "OK");
+                    EditorUtility.DisplayDialog(
+                        "Learning with Journey",
+                        "Unity still could not import the card-back artwork. The importer was reset and forced to Sprite mode, but no Sprite sub-asset was created.",
+                        "OK");
                 return;
             }
 
@@ -60,11 +63,16 @@ namespace LearningWithJourney.EditorTools
                 var back = card.transform.Find("Back");
                 if (back == null) continue;
 
-                // Remove the old temporary question-mark treatment so the approved
-                // Learning with Journey artwork is the only visible card-back design.
                 SetChildActive(back, "Question", false);
                 SetChildActive(back, "MatchLabel", false);
                 SetChildActive(back, "Gloss", false);
+
+                var backImage = back.GetComponent<Image>();
+                if (backImage != null)
+                {
+                    backImage.color = Color.white;
+                    backImage.raycastTarget = false;
+                }
 
                 var oldLogo = back.Find(LogoObjectName);
                 if (oldLogo != null)
@@ -83,6 +91,7 @@ namespace LearningWithJourney.EditorTools
 
                 var image = logoGo.GetComponent<Image>();
                 image.sprite = cardBackSprite;
+                image.type = Image.Type.Simple;
                 image.preserveAspect = true;
                 image.color = Color.white;
                 image.raycastTarget = false;
@@ -100,56 +109,50 @@ namespace LearningWithJourney.EditorTools
             {
                 EditorUtility.DisplayDialog(
                     "Learning with Journey",
-                    "Alphabet Match card backs updated. " + updated + " cards now use the approved Learning with Journey logo artwork. Gameplay, card fronts, Journey, Levels, Points, and matching logic were not changed.",
+                    "Alphabet Match card backs updated. " + updated + " cards now use the approved Learning with Journey artwork.",
                     "OK");
             }
+        }
+
+        static Sprite LoadCardBackSprite()
+        {
+            // Force a synchronous import first so the importer exists even immediately after git pull.
+            AssetDatabase.ImportAsset(
+                CardBackPath,
+                ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+
+            var importer = AssetImporter.GetAtPath(CardBackPath) as TextureImporter;
+            if (importer == null) return null;
+
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spriteImportMode = SpriteImportMode.Single;
+            importer.spritePixelsPerUnit = 100f;
+            importer.mipmapEnabled = false;
+            importer.filterMode = FilterMode.Bilinear;
+            importer.wrapMode = TextureWrapMode.Clamp;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.maxTextureSize = 1024;
+            importer.SaveAndReimport();
+
+            AssetDatabase.ImportAsset(
+                CardBackPath,
+                ImportAssetOptions.ForceSynchronousImport | ImportAssetOptions.ForceUpdate);
+            AssetDatabase.Refresh(ImportAssetOptions.ForceSynchronousImport);
+
+            // Unity can occasionally return null for LoadAssetAtPath<Sprite> on the first import.
+            // Looking through all sub-assets is more reliable for freshly imported textures.
+            var sprite = AssetDatabase.LoadAssetAtPath<Sprite>(CardBackPath);
+            if (sprite != null) return sprite;
+
+            return AssetDatabase.LoadAllAssetsAtPath(CardBackPath)
+                .OfType<Sprite>()
+                .FirstOrDefault();
         }
 
         static void SetChildActive(Transform parent, string childName, bool value)
         {
             var child = parent.Find(childName);
             if (child != null) child.gameObject.SetActive(value);
-        }
-
-        static void ConfigureCardBackImporter()
-        {
-            AssetDatabase.ImportAsset(CardBackPath, ImportAssetOptions.ForceUpdate);
-            var importer = AssetImporter.GetAtPath(CardBackPath) as TextureImporter;
-            if (importer == null) return;
-
-            bool changed = false;
-            if (importer.textureType != TextureImporterType.Sprite)
-            {
-                importer.textureType = TextureImporterType.Sprite;
-                changed = true;
-            }
-            if (importer.spriteImportMode != SpriteImportMode.Single)
-            {
-                importer.spriteImportMode = SpriteImportMode.Single;
-                changed = true;
-            }
-            if (importer.mipmapEnabled)
-            {
-                importer.mipmapEnabled = false;
-                changed = true;
-            }
-            if (importer.filterMode != FilterMode.Bilinear)
-            {
-                importer.filterMode = FilterMode.Bilinear;
-                changed = true;
-            }
-            if (importer.maxTextureSize < 256)
-            {
-                importer.maxTextureSize = 256;
-                changed = true;
-            }
-            if (importer.textureCompression != TextureImporterCompression.CompressedHQ)
-            {
-                importer.textureCompression = TextureImporterCompression.CompressedHQ;
-                changed = true;
-            }
-
-            if (changed) importer.SaveAndReimport();
         }
     }
 }
