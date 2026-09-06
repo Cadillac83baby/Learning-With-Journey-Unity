@@ -50,14 +50,14 @@ namespace LearningWithJourney.EditorTools
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
 
-            // V5 rebuilds the approved Learning with Journey card-back artwork from embedded,
-            // verified image bytes. This avoids any dependency on Git transporting a binary
-            // JPG correctly and makes future rebuilds reliable.
-            LWJAlphabetMatchCardBackRepairV5.ApplySilently();
+            // V6 creates the Learning with Journey logo entirely from Unity UI/TMP.
+            // No external image or Sprite import is required, so rebuilds cannot fail
+            // because of a corrupt or unreadable artwork file.
+            LWJAlphabetMatchCardBackLogoV6.ApplySilently();
 
             EditorUtility.DisplayDialog(
                 "Learning with Journey",
-                "Alphabet Match World V2 is built and polished. The cards move cleanly into the 2-pair, 3-pair, and 4-pair layouts, and every face-down card uses the approved Learning with Journey logo artwork.",
+                "Alphabet Match World V2 is built and polished. The cards move cleanly into the 2-pair, 3-pair, and 4-pair layouts, and every face-down card uses the sprite-free Learning with Journey branded logo back.",
                 "OK");
         }
     }
