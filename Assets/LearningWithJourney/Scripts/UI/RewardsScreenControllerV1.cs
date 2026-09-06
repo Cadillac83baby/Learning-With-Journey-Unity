@@ -27,6 +27,7 @@ namespace LearningWithJourney.UI
         [SerializeField] CanvasGroup prizeCanvasGroup;
         [SerializeField] RectTransform[] sparkles;
         [SerializeField] Image[] rewardMarkers;
+        [SerializeField] TransparentRewardArtworkV5 prizeArtwork;
 
         [Header("Settings")]
         [SerializeField, Min(1)] int starsPerTreasure = 5;
@@ -70,6 +71,8 @@ namespace LearningWithJourney.UI
             if (prizeRoot != null)
             {
                 prizeClosedPosition = prizeRoot.anchoredPosition;
+                if (prizeArtwork == null)
+                    prizeArtwork = prizeRoot.GetComponentInChildren<TransparentRewardArtworkV5>(true);
                 prizeRoot.gameObject.SetActive(false);
             }
 
@@ -113,6 +116,7 @@ namespace LearningWithJourney.UI
             int prizeIndex = openedCount % prizeNames.Length;
             if (prizeTitleText != null) prizeTitleText.text = prizeNames[prizeIndex];
             if (prizeAmountText != null) prizeAmountText.text = "+" + coinsPerTreasure + " JOURNEY COINS";
+            if (prizeArtwork != null) prizeArtwork.SetReward(prizeIndex);
 
             if (prizeRoot != null)
             {
@@ -260,8 +264,6 @@ namespace LearningWithJourney.UI
             if (chestLid == null) yield break;
 
             Vector2 startPos = lidClosedPosition;
-            // Keep the lid visually connected to the chest. The earlier 82px lift made
-            // it look detached on portrait phones.
             Vector2 endPos = lidClosedPosition + new Vector2(0f, 52f);
             Quaternion startRot = lidClosedRotation;
             Quaternion endRot = Quaternion.Euler(0f, 0f, -4f) * lidClosedRotation;
