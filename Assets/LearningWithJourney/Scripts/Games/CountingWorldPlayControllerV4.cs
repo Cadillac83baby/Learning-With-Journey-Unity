@@ -42,11 +42,15 @@ namespace LearningWithJourney.Games
         bool[] counted;
         int[] assignedNumbers;
         Color[] originalColors;
+        CountingObjectVisualTheme[] objectVisuals;
 
         int targetCount;
         int tappedCount;
         int currentLevel;
         int round;
+        int currentThemeIndex;
+        string currentObjectSingular = "object";
+        string currentObjectPlural = "objects";
         bool worldCompleted;
         Coroutine revealRoutine;
 
@@ -65,7 +69,7 @@ namespace LearningWithJourney.Games
             round = Mathf.Clamp(PlayerPrefs.GetInt(RoundKey, 1), 1, roundsPerLevel);
             worldCompleted = PlayerPrefs.GetInt(CompleteKey, 0) == 1;
 
-            PrepareApples();
+            PrepareObjects();
             RefreshPoints();
             UpdateProgressHud();
 
@@ -101,33 +105,36 @@ namespace LearningWithJourney.Games
             StartRound();
         }
 
-        void PrepareApples()
+        void PrepareObjects()
         {
             int length = countObjects != null ? countObjects.Length : 0;
             counted = new bool[length];
             assignedNumbers = new int[length];
             originalColors = new Color[length];
+            objectVisuals = new CountingObjectVisualTheme[length];
 
             for (int i = 0; i < length; i++)
             {
                 int index = i;
-                var apple = countObjects[i];
-                if (!apple) continue;
+                var countObject = countObjects[i];
+                if (!countObject) continue;
 
-                var image = apple.GetComponent<Image>();
+                objectVisuals[i] = countObject.GetComponent<CountingObjectVisualTheme>();
+
+                var image = countObject.GetComponent<Image>();
                 if (image != null)
                 {
                     originalColors[i] = image.color;
                     image.raycastTarget = true;
                 }
 
-                var button = apple.GetComponent<Button>();
-                if (button == null) button = apple.AddComponent<Button>();
+                var button = countObject.GetComponent<Button>();
+                if (button == null) button = countObject.AddComponent<Button>();
                 button.targetGraphic = image;
                 button.transition = Selectable.Transition.ColorTint;
                 button.navigation = new Navigation { mode = Navigation.Mode.None };
                 button.onClick.RemoveAllListeners();
-                button.onClick.AddListener(() => TapApple(index));
+                button.onClick.AddListener(() => TapObject(index));
             }
         }
 
@@ -140,33 +147,34 @@ namespace LearningWithJourney.Games
 
             CancelInvoke(nameof(StartRound));
 
+            ApplyRoundTheme();
             GetCountRangeForLevel(currentLevel, out int minCount, out int maxCount);
             targetCount = rng.Next(minCount, maxCount + 1);
             tappedCount = 0;
 
-            if (promptText) promptText.text = "Touch the apples. How many are there?";
-            if (speechText) speechText.text = "Touch each apple and count with me!";
+            if (promptText) promptText.text = $"Touch the {currentObjectPlural}. How many are there?";
+            if (speechText) speechText.text = $"Touch each {currentObjectSingular} and count with me!";
             if (feedbackText) feedbackText.text = LevelInstruction(currentLevel);
 
             UpdateProgressHud();
 
             for (int i = 0; i < countObjects.Length; i++)
             {
-                var apple = countObjects[i];
-                if (!apple) continue;
+                var countObject = countObjects[i];
+                if (!countObject) continue;
 
                 bool visible = i < targetCount;
-                apple.SetActive(visible);
-                apple.transform.localScale = visible ? Vector3.one * .82f : Vector3.zero;
+                countObject.SetActive(visible);
+                countObject.transform.localScale = visible ? Vector3.one * .82f : Vector3.zero;
 
                 if (i < counted.Length) counted[i] = false;
                 if (i < assignedNumbers.Length) assignedNumbers[i] = 0;
 
-                var image = apple.GetComponent<Image>();
+                var image = countObject.GetComponent<Image>();
                 if (image != null && i < originalColors.Length)
                     image.color = originalColors[i];
 
-                var button = apple.GetComponent<Button>();
+                var button = countObject.GetComponent<Button>();
                 if (button != null) button.interactable = visible;
 
                 if (countBadges != null && i < countBadges.Length && countBadges[i] != null)
@@ -179,36 +187,69 @@ namespace LearningWithJourney.Games
 
             BuildAnswers();
             SetAnswersInteractable(false);
-            revealRoutine = StartCoroutine(RevealApples());
+            revealRoutine = StartCoroutine(RevealObjects());
         }
 
-        IEnumerator RevealApples()
+        void ApplyRoundTheme()
+        {
+            int themeCount = 0;
+            if (objectVisuals != null)
+            {
+                for (int i = 0; i < objectVisuals.Length; i++)
+                {
+                    if (objectVisuals[i] != null && objectVisuals[i].ThemeCount > 0)
+                    {
+                        themeCount = objectVisuals[i].ThemeCount;
+                        break;
+                    }
+                }
+            }
+
+            if (themeCount <= 0)
+            {
+                currentObjectSingular = "apple";
+                currentObjectPlural = "apples";
+                return;
+            }
+
+            int absoluteRound = ((currentLevel - 1) * roundsPerLevel) + (round - 1);
+            currentThemeIndex = absoluteRound % themeCount;
+
+            foreach (var visual in objectVisuals)
+            {
+                if (visual == null) continue;
+                currentObjectPlural = visual.ApplyTheme(currentThemeIndex);
+                currentObjectSingular = visual.GetSingularName(currentThemeIndex);
+            }
+        }
+
+        IEnumerator RevealObjects()
         {
             yield return new WaitForSeconds(.18f);
 
             for (int i = 0; i < targetCount && i < countObjects.Length; i++)
             {
-                var apple = countObjects[i];
-                if (!apple) continue;
-                yield return Pop(apple.transform, .82f, 1.05f, .11f);
+                var countObject = countObjects[i];
+                if (!countObject) continue;
+                yield return Pop(countObject.transform, .82f, 1.05f, .11f);
             }
 
-            if (speechText) speechText.text = "Your turn! Touch an apple to start at 1.";
+            if (speechText) speechText.text = $"Your turn! Touch a {currentObjectSingular} to start at 1.";
             revealRoutine = null;
         }
 
-        void TapApple(int index)
+        void TapObject(int index)
         {
             if (worldCompleted) return;
             if (index < 0 || index >= targetCount || index >= countObjects.Length) return;
 
-            var apple = countObjects[index];
-            if (!apple || !apple.activeInHierarchy) return;
+            var countObject = countObjects[index];
+            if (!countObject || !countObject.activeInHierarchy) return;
 
             if (counted[index])
             {
                 SpeakNumber(assignedNumbers[index]);
-                StartCoroutine(Pop(apple.transform, 1f, 1.12f, .14f));
+                StartCoroutine(Pop(countObject.transform, 1f, 1.12f, .14f));
                 return;
             }
 
@@ -216,7 +257,7 @@ namespace LearningWithJourney.Games
             counted[index] = true;
             assignedNumbers[index] = tappedCount;
 
-            var image = apple.GetComponent<Image>();
+            var image = countObject.GetComponent<Image>();
             if (image != null)
                 image.color = Color.Lerp(originalColors[index], Color.white, .20f);
 
@@ -228,14 +269,14 @@ namespace LearningWithJourney.Games
             }
 
             SpeakNumber(tappedCount);
-            StartCoroutine(Pop(apple.transform, 1f, 1.18f, .18f));
+            StartCoroutine(Pop(countObject.transform, 1f, 1.18f, .18f));
 
             if (feedbackText)
                 feedbackText.text = $"You counted {tappedCount}!";
 
             if (tappedCount >= targetCount)
             {
-                if (speechText) speechText.text = $"Great job! You counted {targetCount}. Now choose the number!";
+                if (speechText) speechText.text = $"Great job! You counted {targetCount} {currentObjectPlural}. Now choose the number!";
                 if (feedbackText) feedbackText.text = "Now tap the correct answer below.";
                 SetAnswersInteractable(true);
             }
@@ -299,7 +340,7 @@ namespace LearningWithJourney.Games
 
             if (tappedCount < targetCount)
             {
-                if (speechText) speechText.text = "Count all the apples first!";
+                if (speechText) speechText.text = $"Count all the {currentObjectPlural} first!";
                 return;
             }
 
@@ -313,7 +354,7 @@ namespace LearningWithJourney.Games
 
             SetAnswersInteractable(false);
             if (feedbackText) feedbackText.text = "Great counting!";
-            if (speechText) speechText.text = $"Yes! The answer is {targetCount}!";
+            if (speechText) speechText.text = $"Yes! There are {targetCount} {currentObjectPlural}!";
 
             GameProgressService.Instance?.AwardCorrect("counting");
             GameProgressService.Instance?.CompleteGame();
@@ -391,8 +432,8 @@ namespace LearningWithJourney.Games
         {
             GetCountRangeForLevel(level, out int min, out int max);
             return level == 1
-                ? "Touch each apple one time."
-                : $"Level {level}: count from {min} to {max}.";
+                ? $"Touch each {currentObjectSingular} one time."
+                : $"Level {level}: count {min} to {max} {currentObjectPlural}.";
         }
 
         void SaveProgress()
