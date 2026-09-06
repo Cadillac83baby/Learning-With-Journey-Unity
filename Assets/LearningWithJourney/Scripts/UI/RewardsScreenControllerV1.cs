@@ -104,11 +104,11 @@ namespace LearningWithJourney.UI
             if (speechText != null) speechText.text = "Here it comes! Let's open your reward!";
 
             ResetTreasurePose();
-            yield return ScaleTo(chestRoot, Vector3.one * 1.06f, .18f);
+            yield return ScaleTo(chestRoot, Vector3.one * 1.045f, .16f);
             yield return ScaleTo(chestRoot, Vector3.one, .12f);
 
             SetSparkles(true);
-            yield return AnimateLidOpen(.38f);
+            yield return AnimateLidOpen(.40f);
 
             int prizeIndex = openedCount % prizeNames.Length;
             if (prizeTitleText != null) prizeTitleText.text = prizeNames[prizeIndex];
@@ -118,12 +118,12 @@ namespace LearningWithJourney.UI
             {
                 prizeRoot.gameObject.SetActive(true);
                 prizeRoot.localScale = Vector3.zero;
-                prizeRoot.anchoredPosition = prizeClosedPosition + new Vector2(0f, -35f);
+                prizeRoot.anchoredPosition = prizeClosedPosition + new Vector2(0f, -22f);
             }
             if (prizeCanvasGroup != null) prizeCanvasGroup.alpha = 0f;
 
             float t = 0f;
-            const float revealDuration = .52f;
+            const float revealDuration = .56f;
             while (t < revealDuration)
             {
                 t += Time.deltaTime;
@@ -131,8 +131,8 @@ namespace LearningWithJourney.UI
                 float eased = 1f - Mathf.Pow(1f - p, 3f);
                 if (prizeRoot != null)
                 {
-                    prizeRoot.anchoredPosition = Vector2.Lerp(prizeClosedPosition + new Vector2(0f, -35f), prizeClosedPosition + new Vector2(0f, 125f), eased);
-                    float overshoot = Mathf.Sin(p * Mathf.PI) * .16f;
+                    prizeRoot.anchoredPosition = Vector2.Lerp(prizeClosedPosition + new Vector2(0f, -22f), prizeClosedPosition + new Vector2(0f, 102f), eased);
+                    float overshoot = Mathf.Sin(p * Mathf.PI) * .12f;
                     prizeRoot.localScale = Vector3.one * Mathf.Lerp(0f, 1f + overshoot, eased);
                 }
                 if (prizeCanvasGroup != null) prizeCanvasGroup.alpha = eased;
@@ -142,7 +142,7 @@ namespace LearningWithJourney.UI
 
             if (prizeRoot != null)
             {
-                prizeRoot.anchoredPosition = prizeClosedPosition + new Vector2(0f, 125f);
+                prizeRoot.anchoredPosition = prizeClosedPosition + new Vector2(0f, 102f);
                 prizeRoot.localScale = Vector3.one;
             }
             if (prizeCanvasGroup != null) prizeCanvasGroup.alpha = 1f;
@@ -168,7 +168,6 @@ namespace LearningWithJourney.UI
             int stars = CurrentStars();
             if (openedCount == 0)
             {
-                // The very first Rewards visit includes a welcome treasure.
                 claimedStars = stars;
                 return;
             }
@@ -261,9 +260,11 @@ namespace LearningWithJourney.UI
             if (chestLid == null) yield break;
 
             Vector2 startPos = lidClosedPosition;
-            Vector2 endPos = lidClosedPosition + new Vector2(0f, 82f);
+            // Keep the lid visually connected to the chest. The earlier 82px lift made
+            // it look detached on portrait phones.
+            Vector2 endPos = lidClosedPosition + new Vector2(0f, 52f);
             Quaternion startRot = lidClosedRotation;
-            Quaternion endRot = Quaternion.Euler(0f, 0f, -8f) * lidClosedRotation;
+            Quaternion endRot = Quaternion.Euler(0f, 0f, -4f) * lidClosedRotation;
             float t = 0f;
 
             while (t < duration)
