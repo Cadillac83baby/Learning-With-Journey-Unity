@@ -42,6 +42,7 @@ namespace LearningWithJourney.Games
         const string CompleteKey = "LWJ_ABC_COMPLETE_V1";
         const string Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
 
+        // Approved preschool A-Z vocabulary list.
         static readonly string[] Words =
         {
             "Apple", "Ball", "Cat", "Dog", "Elephant", "Fish", "Grapes", "Hat", "Ice Cream",
@@ -55,8 +56,15 @@ namespace LearningWithJourney.Games
         int targetIndex;
         int previousTargetIndex = -1;
         bool worldCompleted;
-        bool beginningLetterChallenge;
-        bool lowercaseChallenge;
+
+        enum ChallengeMode
+        {
+            FindUppercase,
+            MatchLowercase,
+            BeginningLetter
+        }
+
+        ChallengeMode currentMode;
 
         void Start()
         {
@@ -114,11 +122,19 @@ namespace LearningWithJourney.Games
             if (worldCompleted) return;
 
             CancelInvoke(nameof(StartRound));
+            currentMode = GetChallengeMode(currentLevel);
             PickTargetForLevel();
             ConfigureChallenge();
             BuildAnswers();
             SetAnswersInteractable(true);
             UpdateProgressHud();
+        }
+
+        ChallengeMode GetChallengeMode(int level)
+        {
+            if (level == 9) return ChallengeMode.MatchLowercase;
+            if (level == 10) return ChallengeMode.BeginningLetter;
+            return ChallengeMode.FindUppercase;
         }
 
         void WireRepeatButtons()
@@ -157,61 +173,49 @@ namespace LearningWithJourney.Games
         void ConfigureChallenge()
         {
             string letter = Alphabet[targetIndex].ToString();
+            string lower = letter.ToLowerInvariant();
             string word = Words[targetIndex];
-
-            beginningLetterChallenge = false;
-            lowercaseChallenge = false;
-
-            if (currentLevel == 10)
-            {
-                int challengeType = rng.Next(0, 3);
-                beginningLetterChallenge = challengeType == 1;
-                lowercaseChallenge = challengeType == 2;
-            }
 
             pictureVisual?.Show(targetIndex);
 
             if (feedbackText)
                 feedbackText.text = LevelInstruction(currentLevel);
 
-            if (beginningLetterChallenge)
+            switch (currentMode)
             {
-                if (promptText) promptText.text = $"Which letter starts {word}?";
-                if (focusLetterText) focusLetterText.text = letter;
-                if (wordText) wordText.text = $"{letter} is for {word}";
-                if (speechText) speechText.text = $"What letter does {word} start with?";
-            }
-            else if (lowercaseChallenge)
-            {
-                string lower = letter.ToLowerInvariant();
-                if (promptText) promptText.text = $"Which big letter matches {lower}?";
-                if (focusLetterText) focusLetterText.text = lower;
-                if (wordText) wordText.text = $"{letter} is for {word}";
-                if (speechText) speechText.text = $"Find the big letter that matches {lower}.";
-            }
-            else
-            {
-                if (promptText) promptText.text = $"Can you find the letter {letter}?";
-                if (focusLetterText) focusLetterText.text = letter;
-                if (wordText) wordText.text = $"{letter} is for {word}";
-                if (speechText) speechText.text = $"{letter} is for {word}. Find {letter} below!";
-            }
+                case ChallengeMode.MatchLowercase:
+                    if (promptText) promptText.text = $"Which big letter matches {lower}?";
+                    if (focusLetterText) focusLetterText.text = lower;
+                    if (wordText) wordText.text = $"{letter} is for {word}";
+                    if (speechText) speechText.text = $"Find the big letter that matches {lower}.";
+                    if (journeySpeech != null)
+                        journeySpeech.SpeakLetter(targetIndex, letter);
+                    else
+                        PlayLegacyLetterAudio(targetIndex);
+                    break;
 
-            SpeakRoundPrompt(letter, word);
-        }
+                case ChallengeMode.BeginningLetter:
+                    if (promptText) promptText.text = $"Which letter starts {word}?";
+                    if (focusLetterText) focusLetterText.text = "?";
+                    if (wordText) wordText.text = word;
+                    if (speechText) speechText.text = $"What letter does {word} start with?";
+                    if (journeySpeech != null)
+                        journeySpeech.SpeakWord(targetIndex, word);
+                    else
+                        PlayLegacyLetterAudio(targetIndex);
+                    break;
 
-        void SpeakRoundPrompt(string letter, string word)
-        {
-            if (journeySpeech != null)
-            {
-                if (beginningLetterChallenge)
-                    journeySpeech.SpeakWord(targetIndex, word);
-                else
-                    journeySpeech.SpeakPhrase(targetIndex, letter, word);
-                return;
+                default:
+                    if (promptText) promptText.text = $"Can you find the letter {letter}?";
+                    if (focusLetterText) focusLetterText.text = letter;
+                    if (wordText) wordText.text = $"{letter} is for {word}";
+                    if (speechText) speechText.text = $"{letter} is for {word}. Find {letter} below!";
+                    if (journeySpeech != null)
+                        journeySpeech.SpeakPhrase(targetIndex, letter, word);
+                    else
+                        PlayLegacyLetterAudio(targetIndex);
+                    break;
             }
-
-            PlayLegacyLetterAudio(targetIndex);
         }
 
         public void RepeatLetter()
@@ -290,7 +294,7 @@ namespace LearningWithJourney.Games
             string correct = Alphabet[targetIndex].ToString();
             string word = Words[targetIndex];
 
-            if (value != correct)
+            if (!string.Equals(value, correct, System.StringComparison.OrdinalIgnoreCase))
             {
                 if (feedbackText) feedbackText.text = "Good try. Pick another letter.";
                 if (speechText) speechText.text = $"Try again. Look for {correct}.";
@@ -300,6 +304,8 @@ namespace LearningWithJourney.Games
 
             SetAnswersInteractable(false);
             if (feedbackText) feedbackText.text = "Great job! You found it!";
+            if (focusLetterText) focusLetterText.text = correct;
+            if (wordText) wordText.text = $"{correct} is for {word}";
             if (speechText) speechText.text = $"Great job! {correct} is for {word}!";
 
             journeySpeech?.SpeakPhrase(targetIndex, correct, word);
@@ -350,10 +356,10 @@ namespace LearningWithJourney.Games
             worldCompleted = true;
             SetAnswersInteractable(false);
             if (promptText) promptText.text = "ABC WORLD COMPLETE!";
-            if (focusLetterText) focusLetterText.text = "ABC";
+            if (focusLetterText) focusLetterText.text = "A-Z";
             if (wordText) wordText.text = "ALPHABET SUPERSTAR";
             if (speechText) speechText.text = "Amazing! You finished all 10 ABC levels!";
-            if (feedbackText) feedbackText.text = "You learned your letters and words!";
+            if (feedbackText) feedbackText.text = "You learned your letters, words, and beginning sounds!";
             if (roundText) roundText.text = $"LEVEL {totalLevels} COMPLETE";
             if (levelText) levelText.text = $"LEVEL {totalLevels} / {totalLevels}";
         }
@@ -369,15 +375,14 @@ namespace LearningWithJourney.Games
                 case 5: minIndex = 12; maxIndex = 14; break;  // M-O
                 case 6: minIndex = 15; maxIndex = 17; break;  // P-R
                 case 7: minIndex = 18; maxIndex = 20; break;  // S-U
-                case 8: minIndex = 21; maxIndex = 23; break;  // V-X
-                case 9: minIndex = 24; maxIndex = 25; break;  // Y-Z
-                default: minIndex = 0; maxIndex = 25; break;  // mixed review
+                case 8: minIndex = 21; maxIndex = 25; break;  // V-Z
+                default: minIndex = 0; maxIndex = 25; break;  // advanced review
             }
         }
 
         void GetAnswerRangeForLevel(int level, out int minIndex, out int maxIndex)
         {
-            if (level == 10)
+            if (level >= 9)
             {
                 minIndex = 0;
                 maxIndex = 25;
@@ -396,9 +401,9 @@ namespace LearningWithJourney.Games
             }
 
             if (level == 9)
-                return "Level 9: practice Y and Z.";
+                return "Level 9: match little letters to big letters.";
 
-            return "Level 10: mixed alphabet review.";
+            return "Level 10: find the beginning letter for each picture and word.";
         }
 
         void PlayLegacyLetterAudio(int index)
