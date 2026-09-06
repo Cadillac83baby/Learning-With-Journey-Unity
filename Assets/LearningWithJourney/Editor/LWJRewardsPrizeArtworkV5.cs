@@ -4,6 +4,7 @@ using TMPro;
 using UnityEditor;
 using UnityEditor.SceneManagement;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace LearningWithJourney.EditorTools
 {
@@ -33,13 +34,35 @@ namespace LearningWithJourney.EditorTools
             }
 
             var scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
-            var prize = GameObject.Find("PrizeReveal");
-            var controllerGo = GameObject.Find("RewardsController");
 
-            if (prize == null || controllerGo == null)
+            // GameObject.Find cannot see inactive objects. PrizeReveal is intentionally
+            // inactive while the chest is closed, so search the loaded scene hierarchy
+            // including inactive children instead.
+            var controller = FindComponentInScene<RewardsScreenControllerV1>(scene);
+            GameObject prize = FindObjectInScene(scene, "PrizeReveal");
+
+            // Extra fallback: use the controller's serialized prizeRoot reference in case
+            // the object is ever renamed in a later Rewards polish pass.
+            if (prize == null && controller != null)
+            {
+                var controllerSo = new SerializedObject(controller);
+                var prizeRootProp = controllerSo.FindProperty("prizeRoot");
+                if (prizeRootProp != null && prizeRootProp.objectReferenceValue is RectTransform prizeRoot)
+                    prize = prizeRoot.gameObject;
+            }
+
+            if (prize == null || controller == null)
             {
                 if (showDialog)
-                    EditorUtility.DisplayDialog("Learning with Journey", "Rewards V5 could not find PrizeReveal or RewardsController.", "OK");
+                {
+                    string missing = prize == null && controller == null
+                        ? "PrizeReveal and RewardsController"
+                        : (prize == null ? "PrizeReveal" : "RewardsController");
+                    EditorUtility.DisplayDialog(
+                        "Learning with Journey",
+                        "Rewards V5 could not find " + missing + " in RewardsRoom.unity. Rebuild Rewards V1 only if that scene object was deleted.",
+                        "OK");
+                }
                 return;
             }
 
@@ -99,14 +122,10 @@ namespace LearningWithJourney.EditorTools
                 }
             }
 
-            var controller = controllerGo.GetComponent<RewardsScreenControllerV1>();
-            if (controller != null)
-            {
-                var so = new SerializedObject(controller);
-                var prop = so.FindProperty("prizeArtwork");
-                if (prop != null) prop.objectReferenceValue = artwork;
-                so.ApplyModifiedPropertiesWithoutUndo();
-            }
+            var so = new SerializedObject(controller);
+            var prop = so.FindProperty("prizeArtwork");
+            if (prop != null) prop.objectReferenceValue = artwork;
+            so.ApplyModifiedPropertiesWithoutUndo();
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, ScenePath);
@@ -117,9 +136,31 @@ namespace LearningWithJourney.EditorTools
             {
                 EditorUtility.DisplayDialog(
                     "Learning with Journey",
-                    "Rewards V5 applied. The generic gift-box placeholder was removed. Gold Star Sticker, Rainbow Badge, Crown Badge, and Super Learner Trophy now each have their own matching transparent-background artwork drawn directly in Unity.",
+                    "Rewards V5 applied successfully. The reward artwork is transparent, and Gold Star Sticker, Rainbow Badge, Crown Badge, and Super Learner Trophy are matched to their correct prize names.",
                     "OK");
             }
+        }
+
+        static GameObject FindObjectInScene(Scene scene, string objectName)
+        {
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                var transforms = root.GetComponentsInChildren<Transform>(true);
+                foreach (var t in transforms)
+                    if (t != null && t.name == objectName)
+                        return t.gameObject;
+            }
+            return null;
+        }
+
+        static T FindComponentInScene<T>(Scene scene) where T : Component
+        {
+            foreach (var root in scene.GetRootGameObjects())
+            {
+                var component = root.GetComponentInChildren<T>(true);
+                if (component != null) return component;
+            }
+            return null;
         }
     }
 }
