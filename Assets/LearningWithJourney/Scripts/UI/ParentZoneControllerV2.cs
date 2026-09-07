@@ -116,7 +116,11 @@ namespace LearningWithJourney.UI
                 parentGateMessageText.text = message + "\n\nWhat is 4 + 3?";
         }
 
-        public void AnswerParentGate(int answer)
+        public void AnswerParentGate6() => AnswerParentGate(6);
+        public void AnswerParentGate7() => AnswerParentGate(7);
+        public void AnswerParentGate8() => AnswerParentGate(8);
+
+        void AnswerParentGate(int answer)
         {
             if (answer == 7)
             {
@@ -126,10 +130,9 @@ namespace LearningWithJourney.UI
                 if (journeySpeechText != null)
                     journeySpeechText.text = "Grown-up tools are ready!";
             }
-            else
+            else if (parentGateMessageText != null)
             {
-                if (parentGateMessageText != null)
-                    parentGateMessageText.text = "That answer is not correct. Please try again.\n\nWhat is 4 + 3?";
+                parentGateMessageText.text = "That answer is not correct. Please try again.\n\nWhat is 4 + 3?";
             }
         }
 
