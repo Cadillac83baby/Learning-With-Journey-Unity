@@ -30,24 +30,29 @@ namespace LearningWithJourney.EditorTools
 
             Scene scene = EditorSceneManager.OpenScene(ScenePath, OpenSceneMode.Single);
 
-            // Fix the audio-listener warning shown in the Game view.
             Camera camera = Camera.main;
             if (camera != null && Object.FindFirstObjectByType<AudioListener>() == null)
                 camera.gameObject.AddComponent<AudioListener>();
 
-            // Header: give the title more breathing room and make page count easier to read.
             SetRect("BackToLibrary", new Vector2(.035f, .925f), new Vector2(.245f, .978f));
             SetRect("BookTitle", new Vector2(.245f, .915f), new Vector2(.755f, .982f));
             ConfigureText("BookTitle", 52f, 34f, 54f, TextAlignmentOptions.Center, TextWrappingModes.NoWrap);
             SetRect("PagePill", new Vector2(.755f, .927f), new Vector2(.965f, .974f));
             ConfigureText("PageNumber", 20f, 16f, 21f, TextAlignmentOptions.Center, TextWrappingModes.NoWrap);
 
-            // Journey stays in her approved look but is given a cleaner reading position.
             SetRect("Journey", new Vector2(.02f, .205f), new Vector2(.345f, .525f));
-            SetRect("JourneyBackpack", new Vector2(.245f, .265f), new Vector2(.345f, .355f));
+            // Approved reader-specific bag position: covers the screen-right shorts/leg cleanly.
+            SetRect("JourneyBackpack", new Vector2(.255f, .255f), new Vector2(.355f, .345f));
+            GameObject backpack = Find("JourneyBackpack");
+            if (backpack != null)
+            {
+                backpack.transform.localRotation = Quaternion.identity;
+                backpack.transform.localScale = Vector3.one;
+                GameObject journey = Find("Journey");
+                if (journey != null)
+                    backpack.transform.SetSiblingIndex(Mathf.Min(journey.transform.GetSiblingIndex() + 1, backpack.transform.parent.childCount - 1));
+            }
 
-            // The old bubble was being covered by the book edge. Move it up, widen it,
-            // and force it in front so the full sentence remains readable.
             GameObject bubble = Find("JourneyReaderBubble");
             if (bubble != null)
             {
@@ -56,7 +61,6 @@ namespace LearningWithJourney.EditorTools
             }
             ConfigureText("Speech", 23f, 17f, 24f, TextAlignmentOptions.Center, TextWrappingModes.Normal);
 
-            // Open book: slightly wider and cleaner, with larger page text.
             SetRect("BookShadow", new Vector2(.315f, .175f), new Vector2(.975f, .875f));
             SetRect("OpenBook", new Vector2(.295f, .19f), new Vector2(.965f, .885f));
             SetRect("ArtworkPanel", new Vector2(.075f, .47f), new Vector2(.925f, .915f));
@@ -79,7 +83,6 @@ namespace LearningWithJourney.EditorTools
                 tip.alignment = TextAlignmentOptions.Center;
             }
 
-            // Controls: equal visual rhythm, larger tap targets and less bottom crowding.
             SetRect("PreviousPage", new Vector2(.31f, .075f), new Vector2(.525f, .155f));
             SetRect("ReadAgain", new Vector2(.535f, .075f), new Vector2(.745f, .155f));
             SetRect("NextPage", new Vector2(.755f, .075f), new Vector2(.97f, .155f));
@@ -94,7 +97,7 @@ namespace LearningWithJourney.EditorTools
 
             EditorUtility.DisplayDialog(
                 "Learning with Journey",
-                "Book Reader V3 polish applied. The speech bubble is fully visible, page text is larger, the book is wider, controls are cleaner, and the Main Camera now has an Audio Listener.",
+                "Book Reader V3 polish applied. The speech bubble is fully visible, page text is larger, the book is wider, controls are cleaner, and the backpack is restored to its approved reader position.",
                 "OK");
         }
 
