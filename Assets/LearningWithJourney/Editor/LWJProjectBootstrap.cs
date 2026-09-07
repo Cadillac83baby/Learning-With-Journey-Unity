@@ -1,4 +1,5 @@
 #if UNITY_EDITOR
+using System.Collections.Generic;
 using System.IO;
 using LearningWithJourney.Core;
 using UnityEditor;
@@ -14,6 +15,7 @@ namespace LearningWithJourney.EditorTools
     public static class LWJProjectBootstrap
     {
         const string Root = "Assets/LearningWithJourney";
+        const string NameSetupPath = "Assets/LearningWithJourney/Scenes/NameSetup.unity";
         static readonly string[] SceneNames =
         {
             "MainMenu","CountingWorld","ABCWorld","AlphabetMatchWorld","RewardsRoom","Library","ParentZone"
@@ -27,7 +29,7 @@ namespace LearningWithJourney.EditorTools
             UpdateBuildSettings();
             AssetDatabase.SaveAssets();
             AssetDatabase.Refresh();
-            EditorUtility.DisplayDialog("Learning with Journey", "Starter scenes and Build Settings are ready.", "OK");
+            EditorUtility.DisplayDialog("Learning with Journey", "Starter scenes and Build Settings are ready. If NameSetup has been built, it remains the first launch scene.", "OK");
         }
 
         static void BuildScene(string sceneName)
@@ -111,9 +113,23 @@ namespace LearningWithJourney.EditorTools
 
         static void UpdateBuildSettings()
         {
-            var scenes=new EditorBuildSettingsScene[SceneNames.Length];
-            for(int i=0;i<SceneNames.Length;i++) scenes[i]=new EditorBuildSettingsScene($"{Root}/Scenes/{SceneNames[i]}.unity",true);
-            EditorBuildSettings.scenes=scenes;
+            var scenes = new List<EditorBuildSettingsScene>();
+
+            if (File.Exists(NameSetupPath))
+                scenes.Add(new EditorBuildSettingsScene(NameSetupPath, true));
+
+            foreach (string sceneName in SceneNames)
+                scenes.Add(new EditorBuildSettingsScene($"{Root}/Scenes/{sceneName}.unity", true));
+
+            // Preserve additional enabled scenes such as BookReader without duplicating them.
+            foreach (var existing in EditorBuildSettings.scenes)
+            {
+                if (!existing.enabled) continue;
+                if (scenes.Exists(s => s.path == existing.path)) continue;
+                scenes.Add(existing);
+            }
+
+            EditorBuildSettings.scenes = scenes.ToArray();
         }
     }
 }
