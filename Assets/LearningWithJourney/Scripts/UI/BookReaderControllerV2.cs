@@ -142,7 +142,11 @@ namespace LearningWithJourney.UI
 
         static BookPage[] BuildABCBook()
         {
-            string[] letters = "ABCDEFGHIJKLMNOPQRSTUVWXYZ".ToCharArray().Select(c => c.ToString()).ToArray();
+            string[] letters =
+            {
+                "A","B","C","D","E","F","G","H","I","J","K","L","M",
+                "N","O","P","Q","R","S","T","U","V","W","X","Y","Z"
+            };
             string[] words =
             {
                 "Apple","Ball","Cat","Dog","Egg","Fish","Grapes","Hat","Ice Cream","Juice","Kite","Lion","Moon",
