@@ -15,6 +15,7 @@ namespace LearningWithJourney.Core
         public int currentStreak;
         public int bestStreak;
         public string playerName = "Little Star";
+        public bool hasPlayerName;
     }
 
     public class GameProgressService : MonoBehaviour
@@ -22,6 +23,7 @@ namespace LearningWithJourney.Core
         public static GameProgressService Instance { get; private set; }
         public PlayerProgress Progress { get; private set; } = new();
         public int Level => Mathf.FloorToInt(Progress.stars / 50f) + 1;
+        public bool HasPlayerName => Progress != null && Progress.hasPlayerName && !string.IsNullOrWhiteSpace(Progress.playerName);
         public event Action OnProgressChanged;
 
         const string SaveKey = "LWJ_PROGRESS_V1";
@@ -63,7 +65,9 @@ namespace LearningWithJourney.Core
 
         public void SetPlayerName(string value)
         {
-            Progress.playerName = string.IsNullOrWhiteSpace(value) ? "Little Star" : value.Trim();
+            string cleaned = string.IsNullOrWhiteSpace(value) ? string.Empty : value.Trim();
+            Progress.playerName = string.IsNullOrEmpty(cleaned) ? "Little Star" : cleaned;
+            Progress.hasPlayerName = !string.IsNullOrEmpty(cleaned);
             Save();
         }
 
