@@ -44,14 +44,14 @@ namespace LearningWithJourney.EditorTools
             {
                 importer.forceToMono = false;
                 importer.loadInBackground = false;
-                importer.preloadAudioData = true;
-                importer.defaultSampleSettings = new AudioImporterSampleSettings
-                {
-                    loadType = AudioClipLoadType.DecompressOnLoad,
-                    compressionFormat = AudioCompressionFormat.Vorbis,
-                    quality = .82f,
-                    sampleRateSetting = AudioSampleRateSetting.PreserveSampleRate
-                };
+
+                AudioImporterSampleSettings settings = importer.defaultSampleSettings;
+                settings.loadType = AudioClipLoadType.DecompressOnLoad;
+                settings.compressionFormat = AudioCompressionFormat.Vorbis;
+                settings.quality = .82f;
+                settings.sampleRateSetting = AudioSampleRateSetting.PreserveSampleRate;
+                settings.preloadAudioData = true;
+                importer.defaultSampleSettings = settings;
                 importer.SaveAndReimport();
             }
 
