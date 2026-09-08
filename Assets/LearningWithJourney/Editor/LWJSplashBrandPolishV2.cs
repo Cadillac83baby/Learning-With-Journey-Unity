@@ -147,27 +147,27 @@ namespace LearningWithJourney.EditorTools
             var powered = CreateText(
                 canvas.transform,
                 "PoweredBy",
-                "POWERED BY",
-                18f,
+                "Powered by: Down $outh Hu$tla Mu$ic Ent",
+                20f,
                 FontStyles.Bold,
-                new Color(.82f, .72f, 1f, 1f),
-                new Vector2(.25f, .115f),
-                new Vector2(.75f, .155f));
+                new Color(.86f, .94f, .88f, 1f),
+                new Vector2(.07f, .115f),
+                new Vector2(.93f, .17f));
             powered.alignment = TextAlignmentOptions.Center;
+            powered.enableAutoSizing = true;
+            powered.fontSizeMin = 14f;
+            powered.fontSizeMax = 22f;
 
             var company = CreateText(
                 canvas.transform,
                 "Company",
-                "DOWN $OUTH HU$TLA MU$IC ENT",
-                25f,
+                string.Empty,
+                20f,
                 FontStyles.Bold,
                 Color.white,
                 new Vector2(.08f, .065f),
                 new Vector2(.92f, .115f));
-            company.alignment = TextAlignmentOptions.Center;
-            company.enableAutoSizing = true;
-            company.fontSizeMin = 18f;
-            company.fontSizeMax = 27f;
+            company.gameObject.SetActive(false);
 
             var controllerGo = new GameObject("SplashController");
             var audioSource = controllerGo.AddComponent<AudioSource>();
