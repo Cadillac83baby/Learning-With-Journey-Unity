@@ -14,6 +14,8 @@ This verifies the file and code configuration. Final audible verification must b
 - Editor installer: `Assets/LearningWithJourney/Editor/LWJApplyGreenLoadingBarV1.cs`
 - Unity menu: **Learning with Journey → Apply Green Loading Bar V1**
 - Bar: dark green track with bright green fill, white-green edge, and smooth unscaled-time fill.
+- Counter: displays `0%` through `99%`; the fill intentionally stops just short of full until the Splash scene transitions.
+- Credit: displays `Powered by: Down $outh Hu$tla Mu$ic Ent` on the black loading page.
 - When `SplashControllerV2` has the DSHMENT clip connected, the fill duration is automatically set to at least the clip duration plus the tail.
 
 ## User test
