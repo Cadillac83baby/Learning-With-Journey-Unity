@@ -139,13 +139,14 @@ namespace LearningWithJourney.EditorTools
                 fitter.aspectRatio = (float)logoTexture.width / logoTexture.height;
 
             TMP_Text powered = GetOrCreateText(canvas.transform, "PoweredBy");
-            ConfigureText(powered, "POWERED BY", 22f, FontStyles.Bold, new Color(.78f, .74f, .83f, 1f), new Vector2(.25f, .17f), new Vector2(.75f, .205f));
+            ConfigureText(powered, "Powered by: Down $outh Hu$tla Mu$ic Ent", 20f, FontStyles.Bold, new Color(.86f, .94f, .88f, 1f), new Vector2(.07f, .115f), new Vector2(.93f, .17f));
+            powered.enableAutoSizing = true;
+            powered.fontSizeMin = 14f;
+            powered.fontSizeMax = 22f;
 
             TMP_Text company = GetOrCreateText(canvas.transform, "CompanyCredit");
-            ConfigureText(company, "DOWN $OUTH HU$TLA MU$IC ENT", 31f, FontStyles.Bold, new Color(1f, .70f, .12f, 1f), new Vector2(.06f, .115f), new Vector2(.94f, .17f));
-            company.enableAutoSizing = true;
-            company.fontSizeMin = 20f;
-            company.fontSizeMax = 31f;
+            company.text = string.Empty;
+            company.gameObject.SetActive(false);
 
             TMP_Text loading = GetOrCreateText(canvas.transform, "Loading");
             ConfigureText(loading, "LOADING...", 22f, FontStyles.Bold, new Color(.87f, .84f, .91f, 1f), new Vector2(.30f, .055f), new Vector2(.70f, .09f));
