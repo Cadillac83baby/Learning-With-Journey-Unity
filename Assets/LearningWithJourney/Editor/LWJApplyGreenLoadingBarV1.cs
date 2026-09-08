@@ -61,6 +61,16 @@ namespace LearningWithJourney.EditorTools
             ClearEffects(fill.gameObject);
             AddOutline(fill.gameObject, Hex("B8FFC7", .9f), new Vector2(1f, -1f));
 
+            TMP_Text percent = GetOrCreateText(track.transform, "LoadingPercent");
+            SetRect(percent.rectTransform, Vector2.zero, Vector2.one);
+            percent.text = "0%";
+            percent.color = Color.white;
+            percent.fontSize = 22f;
+            percent.fontStyle = FontStyles.Bold;
+            percent.alignment = TextAlignmentOptions.Center;
+            percent.verticalAlignment = VerticalAlignmentOptions.Middle;
+            percent.raycastTarget = false;
+
             TMP_Text loading = Find(scene, "Loading")?.GetComponent<TMP_Text>();
             if (loading != null)
             {
@@ -69,6 +79,16 @@ namespace LearningWithJourney.EditorTools
                 loading.color = Hex("D9FFE1");
                 loading.alignment = TextAlignmentOptions.Center;
             }
+
+            TMP_Text poweredBy = GetOrCreateText(canvas, "PoweredBy");
+            SetRect(poweredBy.rectTransform, new Vector2(.08f, .075f), new Vector2(.92f, .115f));
+            poweredBy.text = "Powered by: Down $outh Hu$tla Mu$ic Ent";
+            poweredBy.color = Hex("D9FFE1");
+            poweredBy.fontSize = 20f;
+            poweredBy.fontStyle = FontStyles.Normal;
+            poweredBy.alignment = TextAlignmentOptions.Center;
+            poweredBy.verticalAlignment = VerticalAlignmentOptions.Middle;
+            poweredBy.raycastTarget = false;
 
             Transform controllerTransform = Find(scene, "SplashController");
             GameObject controllerObject = controllerTransform != null
@@ -87,6 +107,7 @@ namespace LearningWithJourney.EditorTools
             if (bar == null) bar = Undo.AddComponent<SplashLoadingBarV1>(controllerObject);
             SerializedObject serialized = new SerializedObject(bar);
             serialized.FindProperty("progressFill").objectReferenceValue = fill;
+            serialized.FindProperty("progressLabel").objectReferenceValue = percent;
             serialized.FindProperty("fillDurationSeconds").floatValue = fillDuration;
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
@@ -94,7 +115,7 @@ namespace LearningWithJourney.EditorTools
             EditorSceneManager.SaveScene(scene, SplashPath);
             AssetDatabase.SaveAssets();
             EditorUtility.DisplayDialog("Learning with Journey",
-                "Green loading bar added. It fills smoothly during startup and reaches 100% before the loading screen changes scenes. When the DSHMENT clip is connected, the bar is timed to the clip plus a short tail. Run Play mode to test it.", "OK");
+                "Green loading bar added with a 0%–99% counter and Powered by credit. When the DSHMENT clip is connected, the bar is timed to the clip plus a short tail. Run Play mode to test it.", "OK");
         }
 
         static Transform Find(Scene scene, string name)
@@ -116,6 +137,19 @@ namespace LearningWithJourney.EditorTools
             var go = new GameObject(name, typeof(RectTransform), typeof(Image));
             go.transform.SetParent(parent, false);
             return go.GetComponent<Image>();
+        }
+
+        static TMP_Text GetOrCreateText(Transform parent, string name)
+        {
+            Transform existing = parent.Find(name);
+            if (existing != null)
+            {
+                TMP_Text text = existing.GetComponent<TMP_Text>();
+                if (text != null) return text;
+            }
+            var go = new GameObject(name, typeof(RectTransform), typeof(TextMeshProUGUI));
+            go.transform.SetParent(parent, false);
+            return go.GetComponent<TMP_Text>();
         }
 
         static void SetRect(RectTransform rect, Vector2 min, Vector2 max)
