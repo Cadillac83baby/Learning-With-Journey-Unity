@@ -74,18 +74,27 @@ namespace LearningWithJourney.EditorTools
             GameObject controllerObject = controllerTransform != null
                 ? controllerTransform.gameObject
                 : new GameObject("SplashController");
+            float fillDuration = 2.15f;
+            SplashControllerV2 v2 = controllerObject.GetComponent<SplashControllerV2>();
+            if (v2 != null)
+            {
+                SerializedObject controllerSerialized = new SerializedObject(v2);
+                AudioSource source = controllerSerialized.FindProperty("loadingAudioSource")?.objectReferenceValue as AudioSource;
+                if (source != null && source.clip != null)
+                    fillDuration = Mathf.Max(fillDuration, source.clip.length + .15f);
+            }
             SplashLoadingBarV1 bar = controllerObject.GetComponent<SplashLoadingBarV1>();
             if (bar == null) bar = Undo.AddComponent<SplashLoadingBarV1>(controllerObject);
             SerializedObject serialized = new SerializedObject(bar);
             serialized.FindProperty("progressFill").objectReferenceValue = fill;
-            serialized.FindProperty("fillDurationSeconds").floatValue = 2.15f;
+            serialized.FindProperty("fillDurationSeconds").floatValue = fillDuration;
             serialized.ApplyModifiedPropertiesWithoutUndo();
 
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, SplashPath);
             AssetDatabase.SaveAssets();
             EditorUtility.DisplayDialog("Learning with Journey",
-                "Green loading bar added. It fills smoothly during startup and reaches 100% before the loading screen changes scenes. Run Play mode to test it with the DSHMENT audio.", "OK");
+                "Green loading bar added. It fills smoothly during startup and reaches 100% before the loading screen changes scenes. When the DSHMENT clip is connected, the bar is timed to the clip plus a short tail. Run Play mode to test it.", "OK");
         }
 
         static Transform Find(Scene scene, string name)
