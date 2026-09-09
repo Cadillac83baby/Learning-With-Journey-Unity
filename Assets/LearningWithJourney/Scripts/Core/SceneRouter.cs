@@ -34,11 +34,11 @@ namespace LearningWithJourney.Core
             {
                 JourneyUiVoiceV1.PlayPath(cueResourcePath);
                 // Leave a small tail so the final consonant is not clipped.
-                yield return new WaitForSeconds(cue.length + .12f);
+                yield return new WaitForSecondsRealtime(cue.length + .12f);
             }
             else
             {
-                yield return new WaitForSeconds(.15f);
+                yield return new WaitForSecondsRealtime(.15f);
             }
 
             Load(sceneName);
