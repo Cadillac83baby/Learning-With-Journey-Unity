@@ -24,9 +24,23 @@ namespace LearningWithJourney.Core
         }
 
         public void OpenMainMenu() => LoadMainMenu();
-        public void OpenCounting() => LoadAfterMenuCue("CountingWorld", "JourneyVoice/UI/Menu_Counting");
-        public void OpenABC() => LoadAfterMenuCue("ABCWorld", "JourneyVoice/UI/Menu_letters");
-        public void OpenAlphabetMatch() => LoadAfterMenuCue("AlphabetMatchWorld", "JourneyVoice/UI/Menu_Matching");
+        public void OpenCounting()
+        {
+            Debug.Log("[LearningWithJourney] Counting tile clicked.");
+            LoadAfterMenuCue("CountingWorld", "JourneyVoice/UI/Menu_Counting");
+        }
+
+        public void OpenABC()
+        {
+            Debug.Log("[LearningWithJourney] ABC tile clicked.");
+            LoadAfterMenuCue("ABCWorld", "JourneyVoice/UI/Menu_letters");
+        }
+
+        public void OpenAlphabetMatch()
+        {
+            Debug.Log("[LearningWithJourney] Alphabet Match tile clicked.");
+            LoadAfterMenuCue("AlphabetMatchWorld", "JourneyVoice/UI/Menu_Matching");
+        }
         public void OpenRewards() => Load("RewardsRoom");
         public void OpenLibrary() => Load("Library");
         public void OpenParentZone() => Load("ParentZone");
@@ -206,10 +220,15 @@ namespace LearningWithJourney.Core
                     }
                 }
 
-                if (button == null) return;
+                if (button == null)
+                {
+                    Debug.LogWarning($"[LearningWithJourney] Could not find Main Menu game button: {objectName}");
+                    return;
+                }
 
                 button.onClick.RemoveListener(callback);
                 button.onClick.AddListener(callback);
+                Debug.Log($"[LearningWithJourney] Wired Main Menu game button: {button.gameObject.name}");
             }
 
             static bool IsMatchingGameButton(Button button, string labelToken)
