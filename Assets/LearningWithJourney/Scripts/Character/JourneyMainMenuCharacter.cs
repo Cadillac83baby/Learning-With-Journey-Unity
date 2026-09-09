@@ -39,6 +39,10 @@ namespace LearningWithJourney.Character
         Vector3 baseScale;
         static bool openingPlayedThisSession;
 
+        // SceneRouter uses this to hand menu game cues to Journey's visible
+        // speech bubble when the Main Menu is revisited.
+        public bool CanPlayVoice => voiceSource != null;
+
         void Awake()
         {
             rect = transform as RectTransform;
