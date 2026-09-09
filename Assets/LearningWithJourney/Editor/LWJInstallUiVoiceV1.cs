@@ -1,10 +1,13 @@
 #if UNITY_EDITOR
 using System.IO;
+using LearningWithJourney.Core;
 using LearningWithJourney.UI;
 using UnityEditor;
+using UnityEditor.Events;
 using UnityEditor.SceneManagement;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace LearningWithJourney.EditorTools
 {
@@ -53,6 +56,19 @@ namespace LearningWithJourney.EditorTools
             JourneyUiVoiceV1 voice = canvas.GetComponent<JourneyUiVoiceV1>();
             if (voice == null) voice = Undo.AddComponent<JourneyUiVoiceV1>(canvas.gameObject);
 
+            SceneRouter router = Object.FindFirstObjectByType<SceneRouter>();
+            if (router == null)
+            {
+                GameObject systems = new GameObject("Systems");
+                router = Undo.AddComponent<SceneRouter>(systems);
+            }
+
+            // Repair saved Main Menu scenes that still have direct scene-load
+            // listeners. Each game tile now plays its full cue before loading.
+            RewireGameButton(scene, "Counting", router.OpenCounting);
+            RewireGameButton(scene, "ABC", router.OpenABC);
+            RewireGameButton(scene, "Match", router.OpenAlphabetMatch);
+
             EditorSceneManager.MarkSceneDirty(scene);
             EditorSceneManager.SaveScene(scene, MainMenuScene);
             AssetDatabase.Refresh();
@@ -60,6 +76,18 @@ namespace LearningWithJourney.EditorTools
                 "Learning with Journey",
                 "UI Journey voice pack installed. Main Menu game tiles now play their matching cues, Name Setup and Parent Zone use their clips automatically, and the Home cue survives scene changes.",
                 "OK");
+        }
+
+        static void RewireGameButton(Scene scene, string objectName, UnityEngine.Events.UnityAction action)
+        {
+            Transform target = Find(scene, objectName);
+            Button button = target != null ? target.GetComponent<Button>() : null;
+            if (button == null) return;
+
+            for (int i = button.onClick.GetPersistentEventCount() - 1; i >= 0; i--)
+                UnityEventTools.RemovePersistentListener(button.onClick, i);
+
+            UnityEventTools.AddPersistentListener(button.onClick, action);
         }
 
         static Transform Find(Scene scene, string name)
