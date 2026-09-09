@@ -145,6 +145,9 @@ namespace LearningWithJourney.EditorTools
             var voiceButton = CreateRoundButton(canvasGO.transform, "JourneyVoiceButton", "♪", new Vector2(.50f, .595f), new Vector2(.585f, .655f), Hex("EF3A95"));
             UnityEventTools.AddPersistentListener(voiceButton.onClick, journeyController.PlayGreeting);
 
+            // Shared audio host keeps menu cues alive while a game scene loads.
+            canvasGO.AddComponent<JourneyUiVoiceV1>();
+
             // GAME SELECT PANEL.
             var gamePanel = CreatePanel(canvasGO.transform, "GamePanel", new Vector2(.49f, .285f), new Vector2(.97f, .695f), Hex("6B25A8", .96f), true);
             AddShadow(gamePanel.gameObject, new Vector2(0, -13), Hex("2B0C4C", .55f));
