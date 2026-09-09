@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace LearningWithJourney.UI
 {
@@ -12,6 +13,7 @@ namespace LearningWithJourney.UI
         static JourneyUiVoiceV1 instance;
         static AudioSource persistentSource;
         AudioSource source;
+        bool persistentHost;
 
         const string MenuWelcome = "JourneyVoice/UI/MENU_welcome";
         const string MenuChoose = "JourneyVoice/UI/Menu_choose";
@@ -26,6 +28,21 @@ namespace LearningWithJourney.UI
 
         void Awake()
         {
+            // The installer places this component on the Main Menu Canvas so
+            // its public cue methods are available in the inspector. The
+            // Canvas itself must remain scene-owned; persisting it would carry
+            // old menu buttons into every game scene. Only the small runtime
+            // host created by EnsureInstance is allowed to survive scenes.
+            persistentHost = transform.parent == null && gameObject.name == "JourneyUiVoice";
+
+            if (!persistentHost)
+            {
+                EnsurePersistentSource();
+                EnsureAudioListener();
+                source = persistentSource;
+                return;
+            }
+
             if (instance != null && instance != this)
             {
                 Destroy(gameObject);
@@ -33,9 +50,28 @@ namespace LearningWithJourney.UI
             }
 
             instance = this;
+            Object.DontDestroyOnLoad(gameObject);
             EnsurePersistentSource();
             EnsureAudioListener();
             source = persistentSource;
+        }
+
+        void OnEnable()
+        {
+            if (!persistentHost) return;
+            SceneManager.sceneLoaded += OnSceneLoaded;
+            EnsureAudioListener();
+        }
+
+        void OnDisable()
+        {
+            if (!persistentHost) return;
+            SceneManager.sceneLoaded -= OnSceneLoaded;
+        }
+
+        void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+        {
+            EnsureAudioListener();
         }
 
         public void PlayMenuWelcome() => PlayPath(MenuWelcome);
@@ -57,8 +93,9 @@ namespace LearningWithJourney.UI
 
         static JourneyUiVoiceV1 EnsureInstance()
         {
-            if (instance != null) return instance;
+            if (instance != null && instance.persistentHost) return instance;
             GameObject host = new GameObject("JourneyUiVoice");
+            Object.DontDestroyOnLoad(host);
             return host.AddComponent<JourneyUiVoiceV1>();
         }
 
