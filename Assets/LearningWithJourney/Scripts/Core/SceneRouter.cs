@@ -85,6 +85,7 @@ namespace LearningWithJourney.Core
             {
                 SceneManager.sceneLoaded += OnSceneLoaded;
                 WireBackButton();
+                WireMainMenuButtons();
             }
 
             void OnDisable()
@@ -95,6 +96,7 @@ namespace LearningWithJourney.Core
             void OnSceneLoaded(Scene scene, LoadSceneMode mode)
             {
                 WireBackButton();
+                WireMainMenuButtons();
             }
 
             static void WireBackButton()
@@ -113,6 +115,40 @@ namespace LearningWithJourney.Core
             {
                 LoadMainMenu();
             }
+
+            static void WireMainMenuButtons()
+            {
+                WireGameButton("Counting", OpenCountingFallback);
+                WireGameButton("ABC", OpenABCFallback);
+                WireGameButton("Match", OpenMatchFallback);
+            }
+
+            static void WireGameButton(string objectName, UnityEngine.Events.UnityAction callback)
+            {
+                if (SceneManager.GetActiveScene().name != "MainMenu") return;
+
+                GameObject target = GameObject.Find(objectName);
+                if (target == null) return;
+
+                Button button = target.GetComponent<Button>();
+                if (button == null) return;
+
+                button.onClick.RemoveListener(callback);
+                button.onClick.AddListener(callback);
+            }
+
+            static SceneRouter FindRouter()
+            {
+                SceneRouter router = Object.FindFirstObjectByType<SceneRouter>();
+                if (router != null) return router;
+
+                GameObject host = new GameObject("SceneRouterRuntime");
+                return host.AddComponent<SceneRouter>();
+            }
+
+            static void OpenCountingFallback() => FindRouter().OpenCounting();
+            static void OpenABCFallback() => FindRouter().OpenABC();
+            static void OpenMatchFallback() => FindRouter().OpenAlphabetMatch();
         }
     }
 }
