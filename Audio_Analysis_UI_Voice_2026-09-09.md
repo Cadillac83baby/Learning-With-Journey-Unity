@@ -6,22 +6,22 @@ Date: 2026-09-09
 
 All 10 uploaded MP3 files decoded successfully at 44.1 kHz. No hard digital clipping or full-scale discontinuity was detected in the decoded audio. The click/pop scan found no sample jumps above 0.35 (normalized full scale) in any file.
 
-The source exports had unusually long trailing silence—roughly 10.4 seconds on the longer menu/name clips and about 2 seconds on the shorter clips. That would make the game wait unnecessarily after the spoken line. The processed copies remove only leading/trailing silence longer than 0.35 seconds, preserve natural pauses inside the line, convert to mono for consistent voice playback, and normalize near -16 LUFS with a -1.5 dB true-peak ceiling.
+The first processed pass was too aggressive for the intended game timing. The replacement copies below are a gentler revision made from the original uploads: they keep the natural beginning, wait for a full 1.0 second of silence before trimming the empty tail, add 150 ms of lead-in and 350 ms of safety tail, and reduce level only slightly. This keeps word endings and natural pauses intact while avoiding the original 10-second dead air.
 
 ## Processed clips
 
 | Clip | Original | Processed | Original peak | Processed peak |
 |---|---:|---:|---:|---:|
-| MENU_welcome | 14.16 s | 3.68 s | -5.3 dBFS | -2.7 dBFS |
-| Menu_Counting | 12.23 s | 1.41 s | -4.7 dBFS | -2.2 dBFS |
-| Menu_Matching | 4.37 s | 2.12 s | -3.7 dBFS | -1.2 dBFS |
-| Menu_choose | 4.52 s | 2.22 s | -5.6 dBFS | -2.8 dBFS |
-| Menu_letters | 3.69 s | 1.88 s | -5.7 dBFS | -3.2 dBFS |
-| Name_ask | 13.54 s | 2.93 s | -5.0 dBFS | -3.0 dBFS |
-| Name_help | 13.20 s | 2.69 s | -6.6 dBFS | -4.1 dBFS |
-| Name_ready | 13.20 s | 2.46 s | -6.8 dBFS | -3.2 dBFS |
-| Nav_home | 3.74 s | 1.49 s | -3.2 dBFS | -1.6 dBFS |
-| Parent_welcome | 3.77 s | 1.65 s | -6.1 dBFS | -3.6 dBFS |
+| MENU_welcome | 14.16 s | 5.30 s | -5.3 dBFS | -6.2 dBFS |
+| Menu_Counting | 12.23 s | 3.34 s | -4.7 dBFS | -5.6 dBFS |
+| Menu_Matching | 4.37 s | 3.89 s | -3.7 dBFS | -1.6 dBFS |
+| Menu_choose | 4.52 s | 3.92 s | -5.6 dBFS | -3.6 dBFS |
+| Menu_letters | 3.69 s | 3.21 s | -5.7 dBFS | -3.6 dBFS |
+| Name_ask | 13.54 s | 4.60 s | -5.0 dBFS | -5.9 dBFS |
+| Name_help | 13.20 s | 4.34 s | -6.6 dBFS | -4.6 dBFS |
+| Name_ready | 13.20 s | 4.23 s | -6.8 dBFS | -4.6 dBFS |
+| Nav_home | 3.74 s | 3.24 s | -3.2 dBFS | -4.1 dBFS |
+| Parent_welcome | 3.77 s | 3.21 s | -6.1 dBFS | -7.1 dBFS |
 
 ## Unity mapping
 
