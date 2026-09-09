@@ -1,5 +1,4 @@
 using UnityEngine;
-using UnityEngine.UI;
 
 namespace LearningWithJourney.UI
 {
@@ -37,20 +36,6 @@ namespace LearningWithJourney.UI
             EnsurePersistentSource();
             EnsureAudioListener();
             source = persistentSource;
-        }
-
-        void Start()
-        {
-            HookButton("Counting", PlayMenuCounting);
-            HookButton("ABC", PlayMenuLetters);
-            HookButton("Match", PlayMenuMatching);
-        }
-
-        void HookButton(string objectName, UnityEngine.Events.UnityAction action)
-        {
-            GameObject target = GameObject.Find(objectName);
-            Button button = target != null ? target.GetComponent<Button>() : null;
-            if (button != null) button.onClick.AddListener(action);
         }
 
         public void PlayMenuWelcome() => PlayPath(MenuWelcome);
