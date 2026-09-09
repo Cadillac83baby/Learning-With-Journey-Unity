@@ -7,13 +7,31 @@ namespace LearningWithJourney.Core
 {
     public class SceneRouter : MonoBehaviour
     {
-        public void OpenMainMenu() => Load("MainMenu");
+        static bool mainMenuLoadRequested;
+
+        public void OpenMainMenu() => LoadMainMenu();
         public void OpenCounting() => LoadAfterMenuCue("CountingWorld", "JourneyVoice/UI/Menu_Counting");
         public void OpenABC() => LoadAfterMenuCue("ABCWorld", "JourneyVoice/UI/Menu_letters");
         public void OpenAlphabetMatch() => LoadAfterMenuCue("AlphabetMatchWorld", "JourneyVoice/UI/Menu_Matching");
         public void OpenRewards() => Load("RewardsRoom");
         public void OpenLibrary() => Load("Library");
         public void OpenParentZone() => Load("ParentZone");
+
+        public static void LoadMainMenu()
+        {
+            if (mainMenuLoadRequested) return;
+            mainMenuLoadRequested = true;
+            SceneManager.LoadScene("MainMenu");
+        }
+
+        void Awake()
+        {
+            // A newly loaded Main Menu starts a fresh return cycle. This is
+            // intentionally scene-owned; serialized menu events must continue
+            // to target the router saved in that scene.
+            if (SceneManager.GetActiveScene().name == "MainMenu")
+                mainMenuLoadRequested = false;
+        }
 
         bool loading;
 
