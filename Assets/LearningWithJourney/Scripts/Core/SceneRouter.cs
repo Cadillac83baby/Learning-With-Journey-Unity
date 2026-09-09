@@ -1,4 +1,5 @@
 using System.Collections;
+using LearningWithJourney.Character;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -70,13 +71,22 @@ namespace LearningWithJourney.Core
 
             if (cue != null)
             {
-                // Play from the current Main Menu router. This source has the
-                // active scene's AudioListener and is destroyed with the menu
-                // after the cue has finished, so a return to Main Menu always
-                // starts with a fresh, audible cue.
-                menuCueSource.Stop();
-                menuCueSource.clip = cue;
-                menuCueSource.Play();
+                // Give the cue to Journey when the character is present. This
+                // stops the return-menu line cleanly, displays the matching
+                // caption, and plays through the same known-good voice source.
+                JourneyMainMenuCharacter journey = Object.FindFirstObjectByType<JourneyMainMenuCharacter>();
+                if (journey != null && journey.CanPlayVoice)
+                {
+                    journey.Speak(cue, CaptionForCue(cueResourcePath));
+                }
+                else
+                {
+                    // Fallback for a menu scene without the Journey character.
+                    menuCueSource.Stop();
+                    menuCueSource.clip = cue;
+                    menuCueSource.Play();
+                }
+
                 // Leave a small tail so the final consonant is not clipped.
                 yield return new WaitForSecondsRealtime(cue.length + .12f);
             }
@@ -86,6 +96,17 @@ namespace LearningWithJourney.Core
             }
 
             Load(sceneName);
+        }
+
+        static string CaptionForCue(string cueResourcePath)
+        {
+            if (cueResourcePath == "JourneyVoice/UI/Menu_Counting")
+                return "Let’s count together!";
+            if (cueResourcePath == "JourneyVoice/UI/Menu_letters")
+                return "Let’s learn letters!";
+            if (cueResourcePath == "JourneyVoice/UI/Menu_Matching")
+                return "Let’s play Alphabet Match!";
+            return string.Empty;
         }
 
         public void Load(string sceneName)
