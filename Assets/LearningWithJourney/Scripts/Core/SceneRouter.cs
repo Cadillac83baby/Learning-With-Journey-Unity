@@ -1,6 +1,5 @@
 using System.Collections;
 using LearningWithJourney.Character;
-using LearningWithJourney.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -11,6 +10,7 @@ namespace LearningWithJourney.Core
     public class SceneRouter : MonoBehaviour
     {
         static bool mainMenuLoadRequested;
+        static bool gameTransitionRequested;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
         static void InstallRuntimeNavigationBridge()
@@ -35,6 +35,7 @@ namespace LearningWithJourney.Core
         {
             if (mainMenuLoadRequested) return;
             mainMenuLoadRequested = true;
+            gameTransitionRequested = false;
             SceneManager.LoadScene("MainMenu");
         }
 
@@ -60,7 +61,8 @@ namespace LearningWithJourney.Core
 
         public void LoadAfterMenuCue(string sceneName, string cueResourcePath)
         {
-            if (loading || string.IsNullOrWhiteSpace(sceneName)) return;
+            if (loading || gameTransitionRequested || string.IsNullOrWhiteSpace(sceneName)) return;
+            gameTransitionRequested = true;
             StartCoroutine(LoadAfterMenuCueRoutine(sceneName, cueResourcePath));
         }
 
@@ -73,18 +75,30 @@ namespace LearningWithJourney.Core
 
             if (cue != null)
             {
-                // Play through the persistent Journey audio host. The Main Menu
-                // scene can be destroyed while the next game loads, so a
-                // scene-owned AudioSource is not reliable for transition cues.
-                JourneyUiVoiceV1.PlayPath(cueResourcePath);
+                // Give the cue to Journey when the character is present. This
+                // stops the return-menu line cleanly, displays the matching
+                // caption, and plays through the same known-good voice source.
                 JourneyMainMenuCharacter journey = Object.FindFirstObjectByType<JourneyMainMenuCharacter>();
-                journey?.ShowPrompt(CaptionForCue(cueResourcePath));
+                if (journey != null && journey.CanPlayVoice)
+                {
+                    Debug.Log($"[LearningWithJourney] Playing game prompt: {cueResourcePath}");
+                    journey.Speak(cue, CaptionForCue(cueResourcePath));
+                }
+                else
+                {
+                    // Fallback for a menu scene without the Journey character.
+                    menuCueSource.Stop();
+                    menuCueSource.clip = cue;
+                    menuCueSource.Play();
+                    Debug.Log($"[LearningWithJourney] Playing game prompt fallback: {cueResourcePath}");
+                }
 
                 // Leave a small tail so the final consonant is not clipped.
                 yield return new WaitForSecondsRealtime(cue.length + .12f);
             }
             else
             {
+                Debug.LogWarning($"[LearningWithJourney] Missing game prompt clip: {cueResourcePath}");
                 yield return new WaitForSecondsRealtime(.15f);
             }
 
@@ -125,6 +139,12 @@ namespace LearningWithJourney.Core
 
             void OnSceneLoaded(Scene scene, LoadSceneMode mode)
             {
+                if (scene.name == "MainMenu")
+                {
+                    mainMenuLoadRequested = false;
+                    gameTransitionRequested = false;
+                }
+
                 WireBackButton();
                 WireMainMenuButtons();
                 StartCoroutine(WireAfterSceneBuild());
@@ -132,6 +152,9 @@ namespace LearningWithJourney.Core
 
             IEnumerator WireAfterSceneBuild()
             {
+                // Main Menu UI can be rebuilt by its scene scripts one frame
+                // after sceneLoaded. Wire again after that build completes so
+                // returning from a game behaves exactly like a fresh launch.
                 yield return null;
                 yield return new WaitForSecondsRealtime(.1f);
                 WireBackButton();
@@ -188,8 +211,7 @@ namespace LearningWithJourney.Core
             {
                 if (button == null || string.IsNullOrWhiteSpace(labelToken)) return false;
 
-                string objectName = button.gameObject.name;
-                if (objectName.IndexOf(labelToken, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                if (button.gameObject.name.IndexOf(labelToken, System.StringComparison.OrdinalIgnoreCase) >= 0)
                     return true;
 
                 foreach (TMP_Text text in button.GetComponentsInChildren<TMP_Text>(true))
