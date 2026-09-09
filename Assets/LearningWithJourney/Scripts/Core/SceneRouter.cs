@@ -1,5 +1,6 @@
 using System.Collections;
 using LearningWithJourney.Character;
+using LearningWithJourney.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -78,23 +79,12 @@ namespace LearningWithJourney.Core
 
             if (cue != null)
             {
-                // Give the cue to Journey when the character is present. This
-                // stops the return-menu line cleanly, displays the matching
-                // caption, and plays through the same known-good voice source.
+                // Play through the persistent Journey voice host so the cue
+                // cannot be cut off when the Main Menu scene is destroyed.
+                JourneyUiVoiceV1.PlayPath(cueResourcePath);
                 JourneyMainMenuCharacter journey = Object.FindFirstObjectByType<JourneyMainMenuCharacter>();
-                if (journey != null && journey.CanPlayVoice)
-                {
-                    Debug.Log($"[LearningWithJourney] Playing game prompt: {cueResourcePath}");
-                    journey.Speak(cue, CaptionForCue(cueResourcePath));
-                }
-                else
-                {
-                    // Fallback for a menu scene without the Journey character.
-                    menuCueSource.Stop();
-                    menuCueSource.clip = cue;
-                    menuCueSource.Play();
-                    Debug.Log($"[LearningWithJourney] Playing game prompt fallback: {cueResourcePath}");
-                }
+                journey?.ShowPrompt(CaptionForCue(cueResourcePath));
+                Debug.Log($"[LearningWithJourney] Playing game prompt: {cueResourcePath}");
 
                 // Leave a small tail so the final consonant is not clipped.
                 yield return new WaitForSecondsRealtime(cue.length + .12f);
@@ -171,6 +161,7 @@ namespace LearningWithJourney.Core
                 // returning from a game behaves exactly like a fresh launch.
                 yield return null;
                 yield return new WaitForSecondsRealtime(.1f);
+                EnsureAudioListener();
                 WireBackButton();
                 WireMainMenuButtons();
             }
