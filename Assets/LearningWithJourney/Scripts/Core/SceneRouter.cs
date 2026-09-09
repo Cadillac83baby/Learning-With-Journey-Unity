@@ -1,5 +1,6 @@
 using System.Collections;
 using LearningWithJourney.Character;
+using LearningWithJourney.UI;
 using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
@@ -72,21 +73,12 @@ namespace LearningWithJourney.Core
 
             if (cue != null)
             {
-                // Give the cue to Journey when the character is present. This
-                // stops the return-menu line cleanly, displays the matching
-                // caption, and plays through the same known-good voice source.
+                // Play through the persistent Journey audio host. The Main Menu
+                // scene can be destroyed while the next game loads, so a
+                // scene-owned AudioSource is not reliable for transition cues.
+                JourneyUiVoiceV1.PlayPath(cueResourcePath);
                 JourneyMainMenuCharacter journey = Object.FindFirstObjectByType<JourneyMainMenuCharacter>();
-                if (journey != null && journey.CanPlayVoice)
-                {
-                    journey.Speak(cue, CaptionForCue(cueResourcePath));
-                }
-                else
-                {
-                    // Fallback for a menu scene without the Journey character.
-                    menuCueSource.Stop();
-                    menuCueSource.clip = cue;
-                    menuCueSource.Play();
-                }
+                journey?.ShowPrompt(CaptionForCue(cueResourcePath));
 
                 // Leave a small tail so the final consonant is not clipped.
                 yield return new WaitForSecondsRealtime(cue.length + .12f);
@@ -123,6 +115,7 @@ namespace LearningWithJourney.Core
                 SceneManager.sceneLoaded += OnSceneLoaded;
                 WireBackButton();
                 WireMainMenuButtons();
+                StartCoroutine(WireAfterSceneBuild());
             }
 
             void OnDisable()
@@ -132,6 +125,15 @@ namespace LearningWithJourney.Core
 
             void OnSceneLoaded(Scene scene, LoadSceneMode mode)
             {
+                WireBackButton();
+                WireMainMenuButtons();
+                StartCoroutine(WireAfterSceneBuild());
+            }
+
+            IEnumerator WireAfterSceneBuild()
+            {
+                yield return null;
+                yield return new WaitForSecondsRealtime(.1f);
                 WireBackButton();
                 WireMainMenuButtons();
             }
@@ -155,9 +157,9 @@ namespace LearningWithJourney.Core
 
             static void WireMainMenuButtons()
             {
-                WireGameButton("Counting", "COUNT", OpenCountingFallback);
-                WireGameButton("ABC", "ABC", OpenABCFallback);
-                WireGameButton("Match", "ALPHABET", OpenMatchFallback);
+                WireGameButton("Counting", "COUNTING", OpenCountingFallback);
+                WireGameButton("ABC", "ABC ADVENTURE", OpenABCFallback);
+                WireGameButton("Match", "ALPHABET MATCH", OpenMatchFallback);
             }
 
             static void WireGameButton(string objectName, string labelToken, UnityEngine.Events.UnityAction callback)
