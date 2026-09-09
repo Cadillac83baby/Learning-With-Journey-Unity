@@ -49,6 +49,14 @@ namespace LearningWithJourney.Core
         public static void LoadMainMenu()
         {
             if (mainMenuLoadRequested) return;
+
+            // GameProgressService keeps its Systems object alive between
+            // scenes, which also keeps this router alive. Clear the
+            // scene-owned cue lock before returning so the next menu
+            // selection can play its prompt.
+            SceneRouter router = Object.FindFirstObjectByType<SceneRouter>();
+            if (router != null) router.loading = false;
+
             mainMenuLoadRequested = true;
             gameTransitionRequested = false;
             SceneManager.LoadScene("MainMenu");
@@ -167,6 +175,12 @@ namespace LearningWithJourney.Core
                 {
                     mainMenuLoadRequested = false;
                     gameTransitionRequested = false;
+
+                    // The persistent Systems object owns the router, so its
+                    // instance Awake does not run again on a return to the
+                    // Main Menu. Explicitly reset the cue lock here.
+                    SceneRouter router = Object.FindFirstObjectByType<SceneRouter>();
+                    if (router != null) router.loading = false;
                 }
 
                 WireBackButton();
