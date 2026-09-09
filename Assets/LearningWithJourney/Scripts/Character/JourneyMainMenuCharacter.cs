@@ -174,6 +174,22 @@ namespace LearningWithJourney.Character
             sequenceRoutine = StartCoroutine(SpeakExternalRoutine(clip, caption));
         }
 
+        // Shows a menu cue caption without owning the audio playback. SceneRouter
+        // uses the persistent JourneyUiVoice audio host for transition cues so
+        // the recording survives the Main Menu scene changing.
+        public void ShowPrompt(string caption)
+        {
+            if (!isActiveAndEnabled) return;
+
+            if (sequenceRoutine != null)
+                StopCoroutine(sequenceRoutine);
+
+            StopIdle();
+            ResetVisualTransform();
+            SetStableFrame();
+            ShowSpeech(caption);
+        }
+
         IEnumerator SpeakExternalRoutine(AudioClip clip, string caption)
         {
             ShowSpeech(caption);
