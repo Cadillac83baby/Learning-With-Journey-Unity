@@ -60,7 +60,10 @@ namespace LearningWithJourney.Core
             // intentionally scene-owned; serialized menu events must continue
             // to target the router saved in that scene.
             if (SceneManager.GetActiveScene().name == "MainMenu")
+            {
                 mainMenuLoadRequested = false;
+                gameTransitionRequested = false;
+            }
 
             EnsureAudioListener();
 
@@ -78,7 +81,10 @@ namespace LearningWithJourney.Core
 
         public void LoadAfterMenuCue(string sceneName, string cueResourcePath)
         {
-            if (loading || gameTransitionRequested || string.IsNullOrWhiteSpace(sceneName)) return;
+            // loading is scene-owned and is enough to prevent duplicate clicks
+            // during one transition. Do not let a stale static flag from the
+            // previous game block the first selection after returning home.
+            if (loading || string.IsNullOrWhiteSpace(sceneName)) return;
             gameTransitionRequested = true;
             StartCoroutine(LoadAfterMenuCueRoutine(sceneName, cueResourcePath));
         }
