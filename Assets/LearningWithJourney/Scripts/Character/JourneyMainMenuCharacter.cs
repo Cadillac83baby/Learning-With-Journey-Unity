@@ -37,6 +37,7 @@ namespace LearningWithJourney.Character
         Vector2 baseAnchoredPosition;
         Quaternion baseRotation;
         Vector3 baseScale;
+        static bool openingPlayedThisSession;
 
         void Awake()
         {
@@ -67,6 +68,16 @@ namespace LearningWithJourney.Character
             ResetVisualTransform();
             SetStableFrame();
             StartIdle();
+
+            // Main Menu can be reloaded after every game. The welcome should
+            // introduce Journey once per app session, not repeat on every return.
+            if (openingPlayedThisSession)
+            {
+                HideSpeech();
+                return;
+            }
+
+            openingPlayedThisSession = true;
 
             if (sequenceRoutine != null)
                 StopCoroutine(sequenceRoutine);
