@@ -57,6 +57,7 @@ namespace LearningWithJourney.UI
 
             Refresh();
             SetStatus("Profile stays on this device. Parent tools require a grown-up check.");
+            JourneyUiVoiceV1.PlayPath("JourneyVoice/UI/Parent_welcome");
         }
 
         void OnDestroy()
@@ -65,7 +66,11 @@ namespace LearningWithJourney.UI
                 GameProgressService.Instance.OnProgressChanged -= Refresh;
         }
 
-        public void GoHome() => SceneManager.LoadScene("MainMenu");
+        public void GoHome()
+        {
+            JourneyUiVoiceV1.PlayPath("JourneyVoice/UI/Nav_home");
+            SceneManager.LoadScene("MainMenu");
+        }
         public void GoLibrary() => SceneManager.LoadScene("Library");
         public void GoRewards() => SceneManager.LoadScene("RewardsRoom");
 
