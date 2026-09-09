@@ -91,7 +91,7 @@ namespace LearningWithJourney.Games
                 GameProgressService.Instance.OnProgressChanged -= RefreshPoints;
         }
 
-        public void GoHome() => SceneManager.LoadScene("MainMenu");
+        public void GoHome() => SceneRouter.LoadMainMenu();
 
         public void ResetCountingProgress()
         {
