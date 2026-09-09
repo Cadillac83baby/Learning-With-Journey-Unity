@@ -1,5 +1,4 @@
 using System.Collections;
-using LearningWithJourney.UI;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -28,6 +27,7 @@ namespace LearningWithJourney.Core
         public void OpenLibrary() => Load("Library");
         public void OpenParentZone() => Load("ParentZone");
 
+        AudioSource menuCueSource;
         public static void LoadMainMenu()
         {
             if (mainMenuLoadRequested) return;
@@ -42,6 +42,15 @@ namespace LearningWithJourney.Core
             // to target the router saved in that scene.
             if (SceneManager.GetActiveScene().name == "MainMenu")
                 mainMenuLoadRequested = false;
+
+            menuCueSource = GetComponent<AudioSource>();
+            if (menuCueSource == null)
+                menuCueSource = gameObject.AddComponent<AudioSource>();
+
+            menuCueSource.playOnAwake = false;
+            menuCueSource.loop = false;
+            menuCueSource.spatialBlend = 0f;
+            menuCueSource.volume = .92f;
         }
 
         bool loading;
@@ -61,7 +70,13 @@ namespace LearningWithJourney.Core
 
             if (cue != null)
             {
-                JourneyUiVoiceV1.PlayPath(cueResourcePath);
+                // Play from the current Main Menu router. This source has the
+                // active scene's AudioListener and is destroyed with the menu
+                // after the cue has finished, so a return to Main Menu always
+                // starts with a fresh, audible cue.
+                menuCueSource.Stop();
+                menuCueSource.clip = cue;
+                menuCueSource.Play();
                 // Leave a small tail so the final consonant is not clipped.
                 yield return new WaitForSecondsRealtime(cue.length + .12f);
             }
