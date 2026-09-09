@@ -1,5 +1,6 @@
 using System.Collections;
 using LearningWithJourney.Character;
+using TMPro;
 using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
@@ -154,23 +155,49 @@ namespace LearningWithJourney.Core
 
             static void WireMainMenuButtons()
             {
-                WireGameButton("Counting", OpenCountingFallback);
-                WireGameButton("ABC", OpenABCFallback);
-                WireGameButton("Match", OpenMatchFallback);
+                WireGameButton("Counting", "COUNT", OpenCountingFallback);
+                WireGameButton("ABC", "ABC", OpenABCFallback);
+                WireGameButton("Match", "ALPHABET", OpenMatchFallback);
             }
 
-            static void WireGameButton(string objectName, UnityEngine.Events.UnityAction callback)
+            static void WireGameButton(string objectName, string labelToken, UnityEngine.Events.UnityAction callback)
             {
                 if (SceneManager.GetActiveScene().name != "MainMenu") return;
 
                 GameObject target = GameObject.Find(objectName);
-                if (target == null) return;
+                Button button = target != null ? target.GetComponent<Button>() : null;
+                if (button == null)
+                {
+                    foreach (Button candidate in Object.FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                    {
+                        if (!IsMatchingGameButton(candidate, labelToken)) continue;
+                        button = candidate;
+                        break;
+                    }
+                }
 
-                Button button = target.GetComponent<Button>();
                 if (button == null) return;
 
                 button.onClick.RemoveListener(callback);
                 button.onClick.AddListener(callback);
+            }
+
+            static bool IsMatchingGameButton(Button button, string labelToken)
+            {
+                if (button == null || string.IsNullOrWhiteSpace(labelToken)) return false;
+
+                string objectName = button.gameObject.name;
+                if (objectName.IndexOf(labelToken, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                    return true;
+
+                foreach (TMP_Text text in button.GetComponentsInChildren<TMP_Text>(true))
+                {
+                    if (text == null || string.IsNullOrWhiteSpace(text.text)) continue;
+                    if (text.text.IndexOf(labelToken, System.StringComparison.OrdinalIgnoreCase) >= 0)
+                        return true;
+                }
+
+                return false;
             }
 
             static SceneRouter FindRouter()
