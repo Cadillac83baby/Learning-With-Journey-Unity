@@ -35,6 +35,7 @@ namespace LearningWithJourney.UI
 
             instance = this;
             EnsurePersistentSource();
+            EnsureAudioListener();
             source = persistentSource;
         }
 
@@ -87,6 +88,20 @@ namespace LearningWithJourney.UI
             persistentSource.loop = false;
             persistentSource.spatialBlend = 0f;
             persistentSource.volume = .92f;
+        }
+
+        static void EnsureAudioListener()
+        {
+            // Unity should have exactly one enabled listener. If a generated or
+            // test scene is missing one, attach it to the active main camera so
+            // Journey's voice is audible without requiring manual scene repair.
+            AudioListener existing = Object.FindFirstObjectByType<AudioListener>();
+            if (existing != null) return;
+
+            Camera camera = Camera.main;
+            if (camera == null) return;
+
+            camera.gameObject.AddComponent<AudioListener>();
         }
 
         void PlayResource(string resourcePath)
