@@ -42,6 +42,7 @@ namespace LearningWithJourney.UI
             SetStatus("Type your first name, then tap LET'S LEARN!");
             if (journeySpeechText != null)
                 journeySpeechText.text = "Hi! I'm Journey! What's your name?";
+            JourneyUiVoiceV1.PlayPath("JourneyVoice/UI/Name_ask");
         }
 
         public void SaveNameAndStart()
@@ -52,6 +53,7 @@ namespace LearningWithJourney.UI
                 SetStatus("Type your name first!");
                 if (journeySpeechText != null)
                     journeySpeechText.text = "Tell me your name so we can learn together!";
+                JourneyUiVoiceV1.PlayPath("JourneyVoice/UI/Name_help");
                 nameInput?.Select();
                 nameInput?.ActivateInputField();
                 return;
@@ -67,6 +69,7 @@ namespace LearningWithJourney.UI
             SetStatus("Welcome, " + value + "!");
             if (journeySpeechText != null)
                 journeySpeechText.text = "Hi, " + value + "! Let's learn, grow, and shine!";
+            JourneyUiVoiceV1.PlayPath("JourneyVoice/UI/Name_ready");
 
             SceneManager.LoadScene(nextScene);
         }
