@@ -1,5 +1,7 @@
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
+using LearningWithJourney.Core;
 
 namespace LearningWithJourney.UI
 {
@@ -61,6 +63,7 @@ namespace LearningWithJourney.UI
             if (!persistentHost) return;
             SceneManager.sceneLoaded += OnSceneLoaded;
             EnsureAudioListener();
+            EnsureBackButton();
         }
 
         void OnDisable()
@@ -72,6 +75,27 @@ namespace LearningWithJourney.UI
         void OnSceneLoaded(Scene scene, LoadSceneMode mode)
         {
             EnsureAudioListener();
+            EnsureBackButton();
+        }
+
+        static void EnsureBackButton()
+        {
+            GameObject backObject = GameObject.Find("BackButton");
+            if (backObject == null) return;
+
+            Button button = backObject.GetComponent<Button>();
+            if (button == null) return;
+
+            // Keep the saved UnityEvent if it exists, but also add a runtime
+            // fallback. SceneRouter.LoadMainMenu is guarded, so a saved
+            // GoHome listener and this fallback cannot trigger two loads.
+            button.onClick.RemoveListener(LoadMainMenuFallback);
+            button.onClick.AddListener(LoadMainMenuFallback);
+        }
+
+        static void LoadMainMenuFallback()
+        {
+            SceneRouter.LoadMainMenu();
         }
 
         public void PlayMenuWelcome() => PlayPath(MenuWelcome);
