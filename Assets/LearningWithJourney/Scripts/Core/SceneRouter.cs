@@ -47,6 +47,8 @@ namespace LearningWithJourney.Core
             if (SceneManager.GetActiveScene().name == "MainMenu")
                 mainMenuLoadRequested = false;
 
+            EnsureAudioListener();
+
             menuCueSource = GetComponent<AudioSource>();
             if (menuCueSource == null)
                 menuCueSource = gameObject.AddComponent<AudioSource>();
@@ -69,6 +71,7 @@ namespace LearningWithJourney.Core
         IEnumerator LoadAfterMenuCueRoutine(string sceneName, string cueResourcePath)
         {
             loading = true;
+            EnsureAudioListener();
             AudioClip cue = string.IsNullOrWhiteSpace(cueResourcePath)
                 ? null
                 : Resources.Load<AudioClip>(cueResourcePath);
@@ -103,6 +106,17 @@ namespace LearningWithJourney.Core
             }
 
             Load(sceneName);
+        }
+
+        static void EnsureAudioListener()
+        {
+            if (Object.FindFirstObjectByType<AudioListener>() != null) return;
+
+            Camera activeCamera = Camera.main;
+            if (activeCamera == null) return;
+
+            activeCamera.gameObject.AddComponent<AudioListener>();
+            Debug.Log("[LearningWithJourney] Added AudioListener to the active Main Camera.");
         }
 
         static string CaptionForCue(string cueResourcePath)
