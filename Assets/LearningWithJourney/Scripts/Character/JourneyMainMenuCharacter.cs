@@ -18,7 +18,7 @@ namespace LearningWithJourney.Character
         [SerializeField] AudioClip[] greetingClips;
 
         [Header("Animation")]
-        [SerializeField] float greetingDelay = 1.0f;
+        [SerializeField] float greetingDelay = 0.15f;
         [SerializeField] float idleBreathCycleSeconds = 3.6f;
         [SerializeField] float talkPulseSeconds = 0.9f;
 
@@ -45,6 +45,9 @@ namespace LearningWithJourney.Character
 
         void Awake()
         {
+            // Older saved Main Menu scenes may still serialize the previous
+            // one-second opening delay. Keep the greeting responsive there too.
+            greetingDelay = Mathf.Clamp(greetingDelay, 0f, .15f);
             rect = transform as RectTransform;
             CacheBaseTransform();
 
@@ -102,7 +105,6 @@ namespace LearningWithJourney.Character
             yield return new WaitForSeconds(greetingDelay);
 
             StopIdle();
-            yield return GentleWave();
 
             ShowSpeech("Hi! I’m Journey! Let’s learn and have fun together!");
             AudioClip greeting = greetingClips != null && greetingClips.Length > 0
@@ -130,7 +132,7 @@ namespace LearningWithJourney.Character
 
         IEnumerator ReturnMenuSequence()
         {
-            yield return new WaitForSecondsRealtime(.15f);
+            yield return new WaitForSecondsRealtime(.05f);
 
             StopIdle();
             AudioClip choose = Resources.Load<AudioClip>("JourneyVoice/UI/Menu_choose");
