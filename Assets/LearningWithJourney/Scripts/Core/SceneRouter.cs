@@ -2,12 +2,23 @@ using System.Collections;
 using LearningWithJourney.UI;
 using UnityEngine;
 using UnityEngine.SceneManagement;
+using UnityEngine.UI;
 
 namespace LearningWithJourney.Core
 {
     public class SceneRouter : MonoBehaviour
     {
         static bool mainMenuLoadRequested;
+
+        [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.BeforeSceneLoad)]
+        static void InstallRuntimeNavigationBridge()
+        {
+            if (GameObject.Find("JourneyNavigationRuntime") != null) return;
+
+            GameObject host = new GameObject("JourneyNavigationRuntime");
+            Object.DontDestroyOnLoad(host);
+            host.AddComponent<RuntimeNavigationBridge>();
+        }
 
         public void OpenMainMenu() => LoadMainMenu();
         public void OpenCounting() => LoadAfterMenuCue("CountingWorld", "JourneyVoice/UI/Menu_Counting");
@@ -66,6 +77,42 @@ namespace LearningWithJourney.Core
         {
             if (string.IsNullOrWhiteSpace(sceneName)) return;
             SceneManager.LoadScene(sceneName);
+        }
+
+        sealed class RuntimeNavigationBridge : MonoBehaviour
+        {
+            void OnEnable()
+            {
+                SceneManager.sceneLoaded += OnSceneLoaded;
+                WireBackButton();
+            }
+
+            void OnDisable()
+            {
+                SceneManager.sceneLoaded -= OnSceneLoaded;
+            }
+
+            void OnSceneLoaded(Scene scene, LoadSceneMode mode)
+            {
+                WireBackButton();
+            }
+
+            static void WireBackButton()
+            {
+                GameObject backObject = GameObject.Find("BackButton");
+                if (backObject == null) return;
+
+                Button button = backObject.GetComponent<Button>();
+                if (button == null) return;
+
+                button.onClick.RemoveListener(ReturnToMainMenu);
+                button.onClick.AddListener(ReturnToMainMenu);
+            }
+
+            static void ReturnToMainMenu()
+            {
+                LoadMainMenu();
+            }
         }
     }
 }
