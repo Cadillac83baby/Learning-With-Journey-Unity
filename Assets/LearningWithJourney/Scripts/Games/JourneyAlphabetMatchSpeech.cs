@@ -9,8 +9,8 @@ namespace LearningWithJourney.Games
         [SerializeField] AudioClip[] letterClips = new AudioClip[26];
         [SerializeField] AudioClip[] wordClips = new AudioClip[26];
         [SerializeField] AudioClip[] phraseClips = new AudioClip[26];
-        AudioClip pendingClip;
-        Coroutine playbackRoutine;
+        // New prompts for the Uppercase-to-Lowercase matching level.
+        [SerializeField] AudioClip[] caseClips = new AudioClip[26];
 
 #if UNITY_ANDROID && !UNITY_EDITOR
         AndroidJavaObject tts;
@@ -37,6 +37,8 @@ namespace LearningWithJourney.Games
         {
             if (audioSource == null)
                 audioSource = GetComponent<AudioSource>();
+
+            LoadCaseClips();
 
 #if UNITY_ANDROID && !UNITY_EDITOR
             InitializeAndroidTts();
@@ -86,7 +88,7 @@ namespace LearningWithJourney.Games
             var wordClip = GetClip(wordClips, index);
             if (letterClip != null || wordClip != null)
             {
-                StopVoicePlayback();
+                StopAllCoroutines();
                 StartCoroutine(PlayLetterWordSequence(letterClip, wordClip));
                 return;
             }
@@ -96,7 +98,35 @@ namespace LearningWithJourney.Games
 
         public void SpeakCaseMatch(string letter)
         {
+            int index = LetterIndex(letter);
+            var clip = GetClip(caseClips, index);
+            if (clip != null) { PlayClip(clip); return; }
             SpeakFallback("Great match. Uppercase " + letter + " matches lowercase " + letter.ToLowerInvariant());
+        }
+
+        void LoadCaseClips()
+        {
+            if (caseClips == null || caseClips.Length != 26)
+                caseClips = new AudioClip[26];
+
+            int loaded = 0;
+            for (int i = 0; i < 26; i++)
+            {
+                if (caseClips[i] != null) continue;
+                string letter = ((char)('A' + i)).ToString();
+                caseClips[i] = Resources.Load<AudioClip>("JourneyVoice/ABC/Case_" + letter);
+                if (caseClips[i] != null) loaded++;
+            }
+#if UNITY_EDITOR
+            if (loaded > 0) Debug.Log("Alphabet Match case prompts loaded: " + loaded + "/26 clips.");
+#endif
+        }
+
+        static int LetterIndex(string letter)
+        {
+            if (string.IsNullOrEmpty(letter)) return -1;
+            char c = char.ToUpperInvariant(letter[0]);
+            return c >= 'A' && c <= 'Z' ? c - 'A' : -1;
         }
 
         public void SpeakTryAgain() => SpeakFallback("Almost. Try again.");
@@ -118,35 +148,8 @@ namespace LearningWithJourney.Games
         void PlayClip(AudioClip clip)
         {
             if (audioSource == null || clip == null) return;
-            pendingClip = clip;
-            if (playbackRoutine == null)
-                playbackRoutine = StartCoroutine(DrainVoice());
-        }
-
-        IEnumerator DrainVoice()
-        {
-            while (pendingClip != null)
-            {
-                AudioClip clip = pendingClip;
-                pendingClip = null;
-                if (clip.loadState == AudioDataLoadState.Unloaded) clip.LoadAudioData();
-                float timeout = 0f;
-                while (clip.loadState == AudioDataLoadState.Loading && timeout < 2f)
-                { timeout += Time.unscaledDeltaTime; yield return null; }
-                audioSource.Stop();
-                audioSource.clip = clip;
-                audioSource.time = 0f;
-                audioSource.Play();
-                while (audioSource != null && audioSource.isPlaying) yield return null;
-            }
-            playbackRoutine = null;
-        }
-
-        void StopVoicePlayback()
-        {
-            pendingClip = null;
-            if (playbackRoutine != null) { StopCoroutine(playbackRoutine); playbackRoutine = null; }
-            if (audioSource != null) audioSource.Stop();
+            audioSource.Stop();
+            audioSource.PlayOneShot(clip);
         }
 
         static AudioClip GetClip(AudioClip[] clips, int index)
