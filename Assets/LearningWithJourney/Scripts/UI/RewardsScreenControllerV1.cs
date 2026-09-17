@@ -7,6 +7,7 @@ using UnityEngine.UI;
 
 namespace LearningWithJourney.UI
 {
+    [RequireComponent(typeof(AudioSource))]
     public class RewardsScreenControllerV1 : MonoBehaviour
     {
         [Header("HUD")]
@@ -29,12 +30,18 @@ namespace LearningWithJourney.UI
         [SerializeField] Image[] rewardMarkers;
         [SerializeField] TransparentRewardArtworkV5 prizeArtwork;
 
+        [Header("Audio")]
+        [SerializeField] AudioSource rewardsVoiceSource;
+
         [Header("Settings")]
         [SerializeField, Min(1)] int starsPerTreasure = 5;
         [SerializeField, Min(0)] int coinsPerTreasure = 25;
 
         const string ClaimedStarsKey = "LWJ_REWARDS_CLAIMED_STARS_V1";
         const string OpenedCountKey = "LWJ_REWARDS_OPENED_V1";
+        const string RewardsOpenVoice = "JourneyVoice/UI/Rewards_open";
+        const string RewardsKeepLearningVoice = "JourneyVoice/UI/Rewards_keep_learning";
+        const string RewardsWonVoice = "JourneyVoice/UI/Rewards_won";
 
         readonly string[] prizeNames =
         {
@@ -51,8 +58,15 @@ namespace LearningWithJourney.UI
         Quaternion lidClosedRotation;
         Vector2 prizeClosedPosition;
 
+        void Awake()
+        {
+            EnsureRewardsAudioSource();
+        }
+
         void Start()
         {
+            EnsureAudioListener();
+
             if (GameProgressService.Instance == null)
                 new GameObject("GameProgressService").AddComponent<GameProgressService>();
 
@@ -82,6 +96,7 @@ namespace LearningWithJourney.UI
                 GameProgressService.Instance.OnProgressChanged += Refresh;
 
             Refresh();
+            PlayRewardsStatusVoice();
         }
 
         void OnDestroy()
@@ -104,7 +119,8 @@ namespace LearningWithJourney.UI
         {
             busy = true;
             if (openTreasureButton != null) openTreasureButton.interactable = false;
-            if (speechText != null) speechText.text = "Here it comes! Let's open your reward!";
+            if (speechText != null) speechText.text = "Here it comes!";
+            PlayRewardsVoice(RewardsWonVoice);
 
             ResetTreasurePose();
             yield return ScaleTo(chestRoot, Vector3.one * 1.045f, .16f);
@@ -165,6 +181,46 @@ namespace LearningWithJourney.UI
             yield return new WaitForSeconds(1.2f);
             busy = false;
             if (openTreasureButton != null) openTreasureButton.interactable = TreasureAvailable();
+        }
+
+        void PlayRewardsStatusVoice()
+        {
+            PlayRewardsVoice(TreasureAvailable() ? RewardsOpenVoice : RewardsKeepLearningVoice);
+        }
+
+        void PlayRewardsVoice(string resourcePath)
+        {
+            AudioClip clip = Resources.Load<AudioClip>(resourcePath);
+            if (clip == null)
+            {
+                Debug.LogWarning("[LearningWithJourney] Missing Rewards voice clip: " + resourcePath);
+                return;
+            }
+
+            EnsureRewardsAudioSource();
+            rewardsVoiceSource.Stop();
+            rewardsVoiceSource.clip = clip;
+            rewardsVoiceSource.Play();
+        }
+
+        void EnsureRewardsAudioSource()
+        {
+            if (rewardsVoiceSource == null)
+                rewardsVoiceSource = GetComponent<AudioSource>();
+            if (rewardsVoiceSource == null)
+                rewardsVoiceSource = gameObject.AddComponent<AudioSource>();
+
+            rewardsVoiceSource.playOnAwake = false;
+            rewardsVoiceSource.loop = false;
+            rewardsVoiceSource.spatialBlend = 0f;
+            rewardsVoiceSource.volume = .92f;
+        }
+
+        static void EnsureAudioListener()
+        {
+            if (Object.FindFirstObjectByType<AudioListener>() != null) return;
+            Camera camera = Camera.main;
+            if (camera != null) camera.gameObject.AddComponent<AudioListener>();
         }
 
         void ClaimTreasureProgress()
@@ -237,7 +293,7 @@ namespace LearningWithJourney.UI
             if (!busy && speechText != null)
             {
                 speechText.text = available
-                    ? "Let's open your reward!"
+                    ? "Let's open your award!"
                     : "Keep learning! Your next treasure is getting closer!";
             }
         }

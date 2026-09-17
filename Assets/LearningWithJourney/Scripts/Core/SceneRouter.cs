@@ -107,6 +107,14 @@ namespace LearningWithJourney.Core
 
             if (cue != null)
             {
+                // Begin loading immediately while the menu cue plays. Scene
+                // activation stays paused until the cue is complete, so the
+                // voice is never cut off but the expensive load is hidden
+                // behind narration.
+                AsyncOperation pendingLoad = SceneManager.LoadSceneAsync(sceneName);
+                if (pendingLoad != null)
+                    pendingLoad.allowSceneActivation = false;
+
                 // Play through the persistent Journey voice host so the cue
                 // cannot be cut off when the Main Menu scene is destroyed.
                 JourneyUiVoiceV1.PlayPath(cueResourcePath);
@@ -115,7 +123,14 @@ namespace LearningWithJourney.Core
                 Debug.Log($"[LearningWithJourney] Playing game prompt: {cueResourcePath}");
 
                 // Leave a small tail so the final consonant is not clipped.
-                yield return new WaitForSecondsRealtime(cue.length + .12f);
+                yield return new WaitForSecondsRealtime(cue.length + .04f);
+                if (pendingLoad != null)
+                {
+                    pendingLoad.allowSceneActivation = true;
+                    yield return pendingLoad;
+                }
+                loading = false;
+                yield break;
             }
             else
             {
@@ -161,6 +176,7 @@ namespace LearningWithJourney.Core
                 SceneManager.sceneLoaded += OnSceneLoaded;
                 WireBackButton();
                 WireMainMenuButtons();
+                WireMainMenuNavigationButtons();
                 StartCoroutine(WireAfterSceneBuild());
             }
 
@@ -185,6 +201,7 @@ namespace LearningWithJourney.Core
 
                 WireBackButton();
                 WireMainMenuButtons();
+                WireMainMenuNavigationButtons();
                 StartCoroutine(WireAfterSceneBuild());
             }
 
@@ -198,6 +215,7 @@ namespace LearningWithJourney.Core
                 EnsureAudioListener();
                 WireBackButton();
                 WireMainMenuButtons();
+                WireMainMenuNavigationButtons();
             }
 
             static void WireBackButton()
@@ -222,6 +240,43 @@ namespace LearningWithJourney.Core
                 WireGameButton("Counting", "COUNTING", OpenCountingFallback);
                 WireGameButton("ABC", "ABC ADVENTURE", OpenABCFallback);
                 WireGameButton("Match", "ALPHABET MATCH", OpenMatchFallback);
+            }
+
+            // Bottom navigation objects can be rebuilt by the menu at runtime.
+            // Rebind them after every scene load so returning from a game does
+            // not leave buttons pointing at the destroyed menu instance.
+            static void WireMainMenuNavigationButtons()
+            {
+                if (SceneManager.GetActiveScene().name != "MainMenu") return;
+                WireNavigationButton("Home", OpenHomeFallback);
+                WireNavigationButton("Library", OpenLibraryFallback);
+                WireNavigationButton("Rewards", OpenRewardsFallback);
+                WireNavigationButton("Parent", OpenParentFallback);
+            }
+
+            static void WireNavigationButton(string token, UnityEngine.Events.UnityAction callback)
+            {
+                Button button = null;
+                foreach (Button candidate in Object.FindObjectsByType<Button>(FindObjectsInactive.Include, FindObjectsSortMode.None))
+                {
+                    if (!IsMatchingNavigationButton(candidate, token)) continue;
+                    button = candidate;
+                    break;
+                }
+                if (button == null) return;
+                button.onClick.RemoveListener(callback);
+                button.onClick.AddListener(callback);
+                Debug.Log($"[LearningWithJourney] Wired Main Menu navigation button: {button.gameObject.name}");
+            }
+
+            static bool IsMatchingNavigationButton(Button button, string token)
+            {
+                if (button == null) return false;
+                string name = button.gameObject.name;
+                if (name.IndexOf(token, System.StringComparison.OrdinalIgnoreCase) >= 0) return true;
+                foreach (TMP_Text text in button.GetComponentsInChildren<TMP_Text>(true))
+                    if (text != null && text.text.IndexOf(token, System.StringComparison.OrdinalIgnoreCase) >= 0) return true;
+                return false;
             }
 
             static void WireGameButton(string objectName, string labelToken, UnityEngine.Events.UnityAction callback)
@@ -280,6 +335,10 @@ namespace LearningWithJourney.Core
             static void OpenCountingFallback() => FindRouter().OpenCounting();
             static void OpenABCFallback() => FindRouter().OpenABC();
             static void OpenMatchFallback() => FindRouter().OpenAlphabetMatch();
+            static void OpenHomeFallback() => FindRouter().OpenMainMenu();
+            static void OpenLibraryFallback() => FindRouter().OpenLibrary();
+            static void OpenRewardsFallback() => FindRouter().OpenRewards();
+            static void OpenParentFallback() => FindRouter().OpenParentZone();
         }
     }
 }

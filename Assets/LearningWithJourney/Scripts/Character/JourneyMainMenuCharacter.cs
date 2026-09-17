@@ -18,7 +18,7 @@ namespace LearningWithJourney.Character
         [SerializeField] AudioClip[] greetingClips;
 
         [Header("Animation")]
-        [SerializeField] float greetingDelay = 0.15f;
+        [SerializeField] float greetingDelay = 0.05f;
         [SerializeField] float idleBreathCycleSeconds = 3.6f;
         [SerializeField] float talkPulseSeconds = 0.9f;
 
@@ -47,7 +47,7 @@ namespace LearningWithJourney.Character
         {
             // Older saved Main Menu scenes may still serialize the previous
             // one-second opening delay. Keep the greeting responsive there too.
-            greetingDelay = Mathf.Clamp(greetingDelay, 0f, .15f);
+            greetingDelay = Mathf.Clamp(greetingDelay, 0f, .05f);
             rect = transform as RectTransform;
             CacheBaseTransform();
 
@@ -102,7 +102,7 @@ namespace LearningWithJourney.Character
 
         IEnumerator OpeningSequence()
         {
-            yield return new WaitForSeconds(greetingDelay);
+            yield return new WaitForSecondsRealtime(greetingDelay);
 
             StopIdle();
 
@@ -206,8 +206,17 @@ namespace LearningWithJourney.Character
 
             if (clip != null && voiceSource != null)
             {
+                if (clip.loadState == AudioDataLoadState.Unloaded)
+                    clip.LoadAudioData();
+                float loadTimeout = 0f;
+                while (clip.loadState == AudioDataLoadState.Loading && loadTimeout < 2f)
+                {
+                    loadTimeout += Time.unscaledDeltaTime;
+                    yield return null;
+                }
                 voiceSource.Stop();
                 voiceSource.clip = clip;
+                voiceSource.time = 0f;
                 voiceSource.Play();
                 duration = clip.length;
             }

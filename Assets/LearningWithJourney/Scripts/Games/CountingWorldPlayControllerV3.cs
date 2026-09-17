@@ -34,6 +34,13 @@ namespace LearningWithJourney.Games
 
         void Start()
         {
+            LoadNumberVoiceIfNeeded();
+            if (numberAudioSource == null)
+            {
+                numberAudioSource = GetComponent<AudioSource>();
+                if (numberAudioSource == null) numberAudioSource = gameObject.AddComponent<AudioSource>();
+                numberAudioSource.playOnAwake = false;
+            }
             if (GameProgressService.Instance == null)
                 new GameObject("GameProgressService").AddComponent<GameProgressService>();
 
@@ -43,6 +50,14 @@ namespace LearningWithJourney.Games
             PrepareApples();
             RefreshProgress();
             StartRound();
+        }
+
+        void LoadNumberVoiceIfNeeded()
+        {
+            numberClips = new AudioClip[20];
+            for (int i = 0; i < numberClips.Length; i++)
+                numberClips[i] = Resources.Load<AudioClip>($"JourneyVoice/NUMBERS/{i + 1:00}");
+            Debug.Log($"[LearningWithJourney] Counting number audio wired: {System.Array.FindAll(numberClips, c => c != null).Length}/20 clips.");
         }
 
         void OnDestroy()

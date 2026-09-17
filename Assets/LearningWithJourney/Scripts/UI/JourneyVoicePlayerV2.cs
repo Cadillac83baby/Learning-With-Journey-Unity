@@ -144,9 +144,12 @@ namespace LearningWithJourney.UI
             }
 
             if (voiceSource == null) return;
+            if (clip.loadState == AudioDataLoadState.Unloaded)
+                clip.LoadAudioData();
             voiceSource.Stop();
             voiceSource.clip = clip;
             voiceSource.volume = voiceVolume;
+            voiceSource.time = 0f;
             voiceSource.Play();
         }
 

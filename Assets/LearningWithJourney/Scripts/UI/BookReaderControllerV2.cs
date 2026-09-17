@@ -48,8 +48,18 @@ namespace LearningWithJourney.UI
             {
                 journeyVoice.PlayWelcome();
                 if (autoReadFirstPage)
-                    Invoke(nameof(ReadCurrentPage), 1.25f);
+                    StartCoroutine(ReadFirstPageAfterWelcome());
             }
+        }
+
+        System.Collections.IEnumerator ReadFirstPageAfterWelcome()
+        {
+            // Follow the actual welcome clip instead of a fixed delay so page
+            // narration starts promptly without cutting the introduction off.
+            while (journeyVoice != null && journeyVoice.IsSpeaking)
+                yield return null;
+            yield return new WaitForSecondsRealtime(.05f);
+            ReadCurrentPage();
         }
 
         void ReadCurrentPage() => journeyVoice?.PlayPage(bookId, pageIndex);
@@ -69,7 +79,7 @@ namespace LearningWithJourney.UI
             {
                 journeyVoice?.StopSpeaking();
                 journeyVoice?.PlayFinish();
-                Invoke(nameof(BackToLibrary), 1.6f);
+                StartCoroutine(ReturnAfterFinish());
                 return;
             }
 
@@ -77,6 +87,14 @@ namespace LearningWithJourney.UI
             journeyVoice?.StopSpeaking();
             journeyVoice?.PlayPageTurn();
             ShowPage(autoReadOnPageTurn);
+        }
+
+        System.Collections.IEnumerator ReturnAfterFinish()
+        {
+            while (journeyVoice != null && journeyVoice.IsSpeaking)
+                yield return null;
+            yield return new WaitForSecondsRealtime(.08f);
+            BackToLibrary();
         }
 
         public void ReadAgain()

@@ -9,6 +9,8 @@ namespace LearningWithJourney.Games
         [SerializeField] AudioClip[] letterClips = new AudioClip[26];
         [SerializeField] AudioClip[] wordClips = new AudioClip[26];
         [SerializeField] AudioClip[] phraseClips = new AudioClip[26];
+        AudioClip pendingClip;
+        Coroutine playbackRoutine;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
         AndroidJavaObject tts;
@@ -84,7 +86,7 @@ namespace LearningWithJourney.Games
             var wordClip = GetClip(wordClips, index);
             if (letterClip != null || wordClip != null)
             {
-                StopAllCoroutines();
+                StopVoicePlayback();
                 StartCoroutine(PlayLetterWordSequence(letterClip, wordClip));
                 return;
             }
@@ -116,8 +118,35 @@ namespace LearningWithJourney.Games
         void PlayClip(AudioClip clip)
         {
             if (audioSource == null || clip == null) return;
-            audioSource.Stop();
-            audioSource.PlayOneShot(clip);
+            pendingClip = clip;
+            if (playbackRoutine == null)
+                playbackRoutine = StartCoroutine(DrainVoice());
+        }
+
+        IEnumerator DrainVoice()
+        {
+            while (pendingClip != null)
+            {
+                AudioClip clip = pendingClip;
+                pendingClip = null;
+                if (clip.loadState == AudioDataLoadState.Unloaded) clip.LoadAudioData();
+                float timeout = 0f;
+                while (clip.loadState == AudioDataLoadState.Loading && timeout < 2f)
+                { timeout += Time.unscaledDeltaTime; yield return null; }
+                audioSource.Stop();
+                audioSource.clip = clip;
+                audioSource.time = 0f;
+                audioSource.Play();
+                while (audioSource != null && audioSource.isPlaying) yield return null;
+            }
+            playbackRoutine = null;
+        }
+
+        void StopVoicePlayback()
+        {
+            pendingClip = null;
+            if (playbackRoutine != null) { StopCoroutine(playbackRoutine); playbackRoutine = null; }
+            if (audioSource != null) audioSource.Stop();
         }
 
         static AudioClip GetClip(AudioClip[] clips, int index)

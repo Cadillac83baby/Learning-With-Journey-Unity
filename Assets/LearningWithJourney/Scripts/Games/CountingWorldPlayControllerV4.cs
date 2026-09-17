@@ -29,6 +29,9 @@ namespace LearningWithJourney.Games
         [Header("Number Audio - Optional")]
         [SerializeField] AudioSource numberAudioSource;
         [SerializeField] AudioClip[] numberClips;
+        [SerializeField] AudioClip[] levelClips;
+        AudioSource promptAudio;
+        readonly Dictionary<string, AudioClip> promptClips = new();
 
         [Header("Progression")]
         [SerializeField, Range(1, 10)] int totalLevels = 10;
@@ -56,6 +59,24 @@ namespace LearningWithJourney.Games
 
         void Start()
         {
+            promptAudio = gameObject.GetComponent<AudioSource>() ?? gameObject.AddComponent<AudioSource>();
+            promptAudio.playOnAwake = false;
+            LoadPromptClips();
+            LoadNumberVoiceIfNeeded();
+            LoadLevelVoiceIfNeeded();
+            if (numberAudioSource == null)
+            {
+                numberAudioSource = GetComponent<AudioSource>();
+                if (numberAudioSource == null) numberAudioSource = gameObject.AddComponent<AudioSource>();
+                numberAudioSource.playOnAwake = false;
+                numberAudioSource.volume = 1f;
+                numberAudioSource.mute = false;
+            }
+            // Some scene variants omit the listener; create one so Android/device playback is audible.
+            var listener = FindObjectOfType<AudioListener>();
+            if (listener == null && Camera.main != null)
+                Camera.main.gameObject.AddComponent<AudioListener>();
+            Debug.Log($"[LearningWithJourney] Counting ready: {System.Array.FindAll(numberClips ?? new AudioClip[0], c => c != null).Length}/20 clips, AudioSource={(numberAudioSource != null)}.");
             if (GameProgressService.Instance == null)
                 new GameObject("GameProgressService").AddComponent<GameProgressService>();
 
@@ -83,6 +104,48 @@ namespace LearningWithJourney.Games
             {
                 StartRound();
             }
+        }
+
+        void LoadPromptClips()
+        {
+            string[] names = { "COUNT_Intro", "COUNT_start", "COUNT_finish_touching", "COUNT_Choose", "COUNT-correct", "COUNT_retry", "COUNT_complete" };
+            foreach (string name in names) promptClips[name] = Resources.Load<AudioClip>($"JourneyVoice/COUNTING/{name}");
+            PlayPrompt("COUNT_Intro");
+        }
+
+        void PlayPrompt(string name)
+        {
+            if (promptAudio != null && promptClips.TryGetValue(name, out AudioClip clip) && clip != null)
+                promptAudio.PlayOneShot(clip);
+        }
+
+        void LoadNumberVoiceIfNeeded()
+        {
+            if (numberClips != null && numberClips.Length >= 20) return;
+            var loaded = Resources.LoadAll<AudioClip>("JourneyVoice/NUMBERS");
+            if (loaded == null || loaded.Length == 0) return;
+            numberClips = new AudioClip[20];
+            for (int i = 0; i < numberClips.Length; i++)
+                numberClips[i] = Resources.Load<AudioClip>($"JourneyVoice/NUMBERS/{i + 1:00}");
+            Debug.Log($"[LearningWithJourney] Counting number audio wired: {System.Array.FindAll(numberClips, c => c != null).Length}/20 clips.");
+        }
+
+        void LoadLevelVoiceIfNeeded()
+        {
+            if (levelClips != null && levelClips.Length >= 10) return;
+            levelClips = new AudioClip[10];
+            for (int i = 0; i < levelClips.Length; i++)
+                levelClips[i] = Resources.Load<AudioClip>($"JourneyVoice/LEVELS/Level_{i + 1:00}");
+            Debug.Log($"[LearningWithJourney] Level completion audio wired: {System.Array.FindAll(levelClips, c => c != null).Length}/10 clips.");
+        }
+
+        void PlayLevelCompleteVoice(int level)
+        {
+            if (level < 1 || level > 10 || levelClips == null || levelClips.Length < level) return;
+            AudioClip clip = levelClips[level - 1];
+            if (clip == null || numberAudioSource == null) return;
+            numberAudioSource.PlayOneShot(clip);
+            Debug.Log($"[LearningWithJourney] Level completion voice played: {level:00} ({clip.name})");
         }
 
         void OnDestroy()
@@ -237,11 +300,13 @@ namespace LearningWithJourney.Games
             }
 
             if (speechText) speechText.text = $"Your turn! Touch a {currentObjectSingular} to start at 1.";
+            PlayPrompt("COUNT_start");
             revealRoutine = null;
         }
 
         void TapObject(int index)
         {
+            Debug.Log($"[LearningWithJourney] Counting object tapped: {index}");
             if (worldCompleted) return;
             if (index < 0 || index >= targetCount || index >= countObjects.Length) return;
 
@@ -279,6 +344,7 @@ namespace LearningWithJourney.Games
 
             if (tappedCount >= targetCount)
             {
+                PlayPrompt("COUNT_finish_touching");
                 if (speechText) speechText.text = $"Great job! You counted {targetCount} {currentObjectPlural}. Now choose the number!";
                 if (feedbackText) feedbackText.text = "Now tap the correct answer below.";
                 SetAnswersInteractable(true);
@@ -295,8 +361,13 @@ namespace LearningWithJourney.Games
             {
                 var clip = numberClips[number - 1];
                 if (clip != null)
+                {
                     numberAudioSource.PlayOneShot(clip);
+                    Debug.Log($"[LearningWithJourney] Counting voice played: {number:00} ({clip.name})");
+                }
+                else Debug.LogWarning($"[LearningWithJourney] Counting clip missing for number {number:00}.");
             }
+            else Debug.LogWarning($"[LearningWithJourney] Counting audio unavailable for number {number}: source={numberAudioSource != null}, clips={numberClips?.Length ?? 0}.");
         }
 
         void BuildAnswers()
@@ -349,6 +420,7 @@ namespace LearningWithJourney.Games
 
             if (value != targetCount)
             {
+                PlayPrompt("COUNT_retry");
                 if (feedbackText) feedbackText.text = "Good try. Pick another number.";
                 if (speechText) speechText.text = "Try again!";
                 GameProgressService.Instance?.RegisterMiss();
@@ -356,6 +428,7 @@ namespace LearningWithJourney.Games
             }
 
             SetAnswersInteractable(false);
+            PlayPrompt("COUNT-correct");
             if (feedbackText) feedbackText.text = "Great counting!";
             if (speechText) speechText.text = $"Yes! There are {targetCount} {currentObjectPlural}!";
 
@@ -388,6 +461,8 @@ namespace LearningWithJourney.Games
                 if (speechText) speechText.text = $"Level {completedLevel} complete! Level {currentLevel} is ready!";
                 if (feedbackText) feedbackText.text = "New level unlocked!";
                 UpdateProgressHud();
+                PlayLevelCompleteVoice(completedLevel);
+                PlayPrompt("COUNT_complete");
                 Invoke(nameof(StartRound), 2.4f);
                 return;
             }

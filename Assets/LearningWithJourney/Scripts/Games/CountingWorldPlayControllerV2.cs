@@ -19,14 +19,30 @@ namespace LearningWithJourney.Games
         [SerializeField] TMP_Text pointsText;
         [SerializeField] TMP_Text levelText;
         [SerializeField] RectTransform journeyRect;
+        [SerializeField] AudioSource numberAudioSource;
+        [SerializeField] AudioClip[] numberClips;
 
         readonly System.Random rng = new();
         int targetCount;
+        int tappedCount;
+        bool[] counted;
         int round = 1;
         Coroutine revealRoutine;
 
         void Start()
         {
+            numberClips = new AudioClip[20];
+            for (int i = 0; i < 20; i++) numberClips[i] = Resources.Load<AudioClip>($"JourneyVoice/NUMBERS/{i + 1:00}");
+            if (numberAudioSource == null) numberAudioSource = gameObject.GetComponent<AudioSource>() ?? gameObject.AddComponent<AudioSource>();
+            numberAudioSource.playOnAwake = false;
+            counted = new bool[countObjects != null ? countObjects.Length : 0];
+            for (int i = 0; i < countObjects.Length; i++)
+            {
+                int index = i;
+                var button = countObjects[i] != null ? countObjects[i].GetComponent<Button>() : null;
+                if (button == null && countObjects[i] != null) button = countObjects[i].AddComponent<Button>();
+                if (button != null) { button.onClick.RemoveAllListeners(); button.onClick.AddListener(() => TapObject(index)); }
+            }
             if (GameProgressService.Instance == null)
                 new GameObject("GameProgressService").AddComponent<GameProgressService>();
 
@@ -51,6 +67,8 @@ namespace LearningWithJourney.Games
                 StopCoroutine(revealRoutine);
 
             targetCount = rng.Next(1, 21);
+            tappedCount = 0;
+            if (counted != null) System.Array.Clear(counted, 0, counted.Length);
 
             if (promptText) promptText.text = "How many apples do you see?";
             if (speechText) speechText.text = "Count the apples with me!";
@@ -70,6 +88,17 @@ namespace LearningWithJourney.Games
             BuildAnswers();
             SetAnswersInteractable(false);
             revealRoutine = StartCoroutine(CountObjectsTogether());
+        }
+
+        void TapObject(int index)
+        {
+            if (index < 0 || index >= targetCount || counted[index]) return;
+            counted[index] = true;
+            tappedCount++;
+            if (speechText) speechText.text = tappedCount.ToString();
+            if (numberAudioSource != null && tappedCount <= numberClips.Length && numberClips[tappedCount - 1] != null)
+                numberAudioSource.PlayOneShot(numberClips[tappedCount - 1]);
+            if (tappedCount >= targetCount) SetAnswersInteractable(true);
         }
 
         IEnumerator CountObjectsTogether()

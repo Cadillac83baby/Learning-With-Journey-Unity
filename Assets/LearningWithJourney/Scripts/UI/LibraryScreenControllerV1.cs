@@ -25,6 +25,15 @@ namespace LearningWithJourney.UI
 
         string selectedBookId = "";
 
+        void Awake()
+        {
+            var source = GetComponent<AudioSource>();
+            if (source == null) source = gameObject.AddComponent<AudioSource>();
+            source.playOnAwake = false;
+            source.loop = false;
+            source.volume = 1f;
+        }
+
         void Start()
         {
             if (GameProgressService.Instance == null)
