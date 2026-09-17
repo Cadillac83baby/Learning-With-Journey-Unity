@@ -37,6 +37,7 @@ EditorBuildSettings:
     guid: 995cf3911aecd9e429b9fe0d8b5db478
   - enabled: 1
     path: Assets/LearningWithJourney/Scenes/BookReader.unity
-    guid: 00000000000000000000000000000000
-  m_configObjects: {}
+    guid: 6e1015ebc3eaf054ea411936fe8bacc4
+  m_configObjects:
+    com.unity.input.settings: {fileID: 11400000, guid: 3ed0211ac5f8e6d43bf06c9f35377d86, type: 2}
   m_UseUCBPForAssetBundles: 0
