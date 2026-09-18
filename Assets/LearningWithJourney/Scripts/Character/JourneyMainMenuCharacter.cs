@@ -47,7 +47,8 @@ namespace LearningWithJourney.Character
         {
             // Older saved Main Menu scenes may still serialize the previous
             // one-second opening delay. Keep the greeting responsive there too.
-            greetingDelay = Mathf.Clamp(greetingDelay, 0f, .05f);
+            // Start the welcome voice immediately when the menu appears.
+            greetingDelay = 0f;
             rect = transform as RectTransform;
             CacheBaseTransform();
 

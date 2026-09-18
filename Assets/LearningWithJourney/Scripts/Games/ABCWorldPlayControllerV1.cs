@@ -337,6 +337,7 @@ namespace LearningWithJourney.Games
 
                 if (speechText) speechText.text = $"Level {completedLevel} complete! Level {currentLevel} is ready!";
                 if (feedbackText) feedbackText.text = "New alphabet level unlocked!";
+                journeySpeech?.SpeakLevelComplete(completedLevel);
                 UpdateProgressHud();
                 Invoke(nameof(StartRound), 2.3f);
                 return;
@@ -362,6 +363,7 @@ namespace LearningWithJourney.Games
             if (feedbackText) feedbackText.text = "You learned your letters, words, and beginning sounds!";
             if (roundText) roundText.text = $"LEVEL {totalLevels} COMPLETE";
             if (levelText) levelText.text = $"LEVEL {totalLevels} / {totalLevels}";
+            journeySpeech?.SpeakWorldComplete();
         }
 
         void GetLetterRangeForLevel(int level, out int minIndex, out int maxIndex)

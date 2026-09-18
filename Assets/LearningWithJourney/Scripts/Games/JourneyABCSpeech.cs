@@ -1,15 +1,20 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 namespace LearningWithJourney.Games
 {
     public class JourneyABCSpeech : MonoBehaviour
     {
+        const string Alphabet = "ABCDEFGHIJKLMNOPQRSTUVWXYZ";
+        const string VoiceFolder = "JourneyVoice/ABC/";
+
         [SerializeField] AudioSource audioSource;
         [SerializeField] AudioClip[] letterClips = new AudioClip[26];
         [SerializeField] AudioClip[] wordClips = new AudioClip[26];
         [SerializeField] AudioClip[] phraseClips = new AudioClip[26];
-        AudioClip pendingClip;
+        AudioClip worldCompleteClip;
+        readonly Queue<AudioClip> pendingClips = new Queue<AudioClip>();
         Coroutine playbackRoutine;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -58,7 +63,7 @@ namespace LearningWithJourney.Games
 
         public void SpeakLetter(int index, string letter)
         {
-            AudioClip clip = GetClip(letterClips, index);
+            AudioClip clip = GetClip(letterClips, index) ?? LoadLetterClip(index);
             if (clip != null)
             {
                 PlayClip(clip);
@@ -70,7 +75,7 @@ namespace LearningWithJourney.Games
 
         public void SpeakWord(int index, string word)
         {
-            AudioClip clip = GetClip(wordClips, index);
+            AudioClip clip = GetClip(wordClips, index) ?? LoadWordClip(index);
             if (clip != null)
             {
                 PlayClip(clip);
@@ -89,8 +94,8 @@ namespace LearningWithJourney.Games
                 return;
             }
 
-            AudioClip letterClip = GetClip(letterClips, index);
-            AudioClip wordClip = GetClip(wordClips, index);
+            AudioClip letterClip = GetClip(letterClips, index) ?? LoadLetterClip(index);
+            AudioClip wordClip = GetClip(wordClips, index) ?? LoadWordClip(index);
             if (letterClip != null || wordClip != null)
             {
                 StopVoicePlayback();
@@ -104,6 +109,23 @@ namespace LearningWithJourney.Games
         public void SpeakPrompt(int index, string letter, string word)
         {
             SpeakFallback($"Can you find the letter {letter}? {letter} is for {word}.");
+        }
+
+        public void SpeakLevelComplete(int level)
+        {
+            SpeakFallback("Level " + level + " complete.");
+        }
+
+        public void SpeakWorldComplete()
+        {
+            worldCompleteClip ??= Resources.Load<AudioClip>(VoiceFolder + "ABC_level_Complete");
+            if (worldCompleteClip != null)
+            {
+                PlayClip(worldCompleteClip);
+                return;
+            }
+
+            SpeakFallback("Amazing. You finished all 10 ABC levels.");
         }
 
         IEnumerator PlayLetterWordSequence(AudioClip letterClip, AudioClip wordClip)
@@ -121,17 +143,17 @@ namespace LearningWithJourney.Games
         void PlayClip(AudioClip clip)
         {
             if (audioSource == null || clip == null) return;
-            pendingClip = clip;
+            StopAndroidTts();
+            pendingClips.Enqueue(clip);
             if (playbackRoutine == null)
                 playbackRoutine = StartCoroutine(DrainVoice());
         }
 
         System.Collections.IEnumerator DrainVoice()
         {
-            while (pendingClip != null)
+            while (pendingClips.Count > 0)
             {
-                AudioClip clip = pendingClip;
-                pendingClip = null;
+                AudioClip clip = pendingClips.Dequeue();
                 if (clip.loadState == AudioDataLoadState.Unloaded) clip.LoadAudioData();
                 float timeout = 0f;
                 while (clip.loadState == AudioDataLoadState.Loading && timeout < 2f)
@@ -147,7 +169,7 @@ namespace LearningWithJourney.Games
 
         void StopVoicePlayback()
         {
-            pendingClip = null;
+            pendingClips.Clear();
             if (playbackRoutine != null) { StopCoroutine(playbackRoutine); playbackRoutine = null; }
             if (audioSource != null) audioSource.Stop();
         }
@@ -158,9 +180,24 @@ namespace LearningWithJourney.Games
             return clips[index];
         }
 
+        static AudioClip LoadLetterClip(int index)
+        {
+            if (index < 0 || index >= Alphabet.Length) return null;
+            return Resources.Load<AudioClip>(VoiceFolder + "Letter_" + Alphabet[index]);
+        }
+
+        static AudioClip LoadWordClip(int index)
+        {
+            if (index < 0 || index >= Alphabet.Length) return null;
+            return Resources.Load<AudioClip>(VoiceFolder + "Word_" + Alphabet[index]);
+        }
+
         void SpeakFallback(string text)
         {
             if (string.IsNullOrWhiteSpace(text)) return;
+
+            if (audioSource != null) audioSource.Stop();
+            StopAndroidTts();
 
 #if UNITY_ANDROID && !UNITY_EDITOR
             if (ttsReady && tts != null)
@@ -172,6 +209,17 @@ namespace LearningWithJourney.Games
 
 #if UNITY_EDITOR
             Debug.Log("Journey ABC voice: " + text);
+#endif
+        }
+
+        void StopAndroidTts()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            if (tts != null)
+            {
+                try { tts.Call("stop"); }
+                catch (System.Exception) { }
+            }
 #endif
         }
 

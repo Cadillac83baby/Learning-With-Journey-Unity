@@ -50,7 +50,7 @@ namespace LearningWithJourney.Games
             "Sun", "Turtle", "Umbrella", "Violin", "Watermelon", "Xylophone", "Yo-Yo", "Zebra"
         };
 
-        enum MatchMode { LetterPicture, UpperLower }
+        enum MatchMode { LetterPicture, UpperLower, LowercasePicture }
 
         class DeckEntry
         {
@@ -142,7 +142,7 @@ namespace LearningWithJourney.Games
             matchedPairs = 0;
             moves = 0;
             firstIndex = secondIndex = -1;
-            currentMode = currentLevel == 9 ? MatchMode.UpperLower : MatchMode.LetterPicture;
+            currentMode = currentLevel == 9 ? MatchMode.UpperLower : (currentLevel == 10 ? MatchMode.LowercasePicture : MatchMode.LetterPicture);
             activePairCount = PairCountForLevel(currentLevel);
             activeCardCount = Mathf.Min(activePairCount * 2, cardButtons != null ? cardButtons.Length : 0);
 
@@ -155,6 +155,12 @@ namespace LearningWithJourney.Games
                 if (promptText) promptText.text = "Match each BIG letter with its little letter!";
                 if (speechText) speechText.text = "Match uppercase letters with lowercase letters.";
                 journeySpeech?.SpeakPrompt("Match each big letter with its little letter.");
+            }
+            else if (currentMode == MatchMode.LowercasePicture)
+            {
+                if (promptText) promptText.text = "Match each little letter with its picture!";
+                if (speechText) speechText.text = "Match lowercase letters with pictures.";
+                journeySpeech?.SpeakPrompt("Match each little letter with its picture.");
             }
             else
             {
@@ -198,6 +204,11 @@ namespace LearningWithJourney.Games
                 {
                     pictureSide[i] = false;
                     lowercaseSide[i] = entry.secondSide;
+                }
+                else if (currentMode == MatchMode.LowercasePicture)
+                {
+                    pictureSide[i] = entry.secondSide;
+                    lowercaseSide[i] = !entry.secondSide;
                 }
                 else
                 {
@@ -285,6 +296,12 @@ namespace LearningWithJourney.Games
                 if (feedbackText) feedbackText.text = "Great match! " + letter + " matches " + letter.ToLowerInvariant() + ".";
                 if (speechText) speechText.text = "Great match! Uppercase " + letter + " and lowercase " + letter.ToLowerInvariant() + ".";
                 journeySpeech?.SpeakCaseMatch(letter);
+            }
+            else if (currentMode == MatchMode.LowercasePicture)
+            {
+                if (feedbackText) feedbackText.text = "Great match! lowercase " + letter.ToLowerInvariant() + " is for " + word + ".";
+                if (speechText) speechText.text = "Lowercase " + letter.ToLowerInvariant() + " is for " + word + ".";
+                journeySpeech?.SpeakLowercase(letter);
             }
             else
             {
@@ -474,7 +491,7 @@ namespace LearningWithJourney.Games
             if (level <= 6) return "Level " + level + ": find 3 matching pairs.";
             if (level <= 8) return "Level " + level + ": find 4 matching pairs.";
             if (level == 9) return "Level 9: match uppercase and lowercase letters.";
-            return "Level 10: mixed letter-to-picture challenge.";
+            return "Level 10: match lowercase letters to pictures.";
         }
 
         void UpdateProgressHud()

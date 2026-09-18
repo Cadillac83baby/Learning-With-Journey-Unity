@@ -11,6 +11,8 @@ namespace LearningWithJourney.Games
         [SerializeField] AudioClip[] phraseClips = new AudioClip[26];
         // New prompts for the Uppercase-to-Lowercase matching level.
         [SerializeField] AudioClip[] caseClips = new AudioClip[26];
+        [SerializeField] AudioClip[] lowercaseClips = new AudioClip[26];
+        AudioClip worldCompleteClip;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
         AndroidJavaObject tts;
@@ -39,6 +41,8 @@ namespace LearningWithJourney.Games
                 audioSource = GetComponent<AudioSource>();
 
             LoadCaseClips();
+            LoadLowercaseClips();
+            worldCompleteClip = Resources.Load<AudioClip>("JourneyVoice/MATCH/Alphabet_Match_World_Complete");
 
 #if UNITY_ANDROID && !UNITY_EDITOR
             InitializeAndroidTts();
@@ -69,6 +73,11 @@ namespace LearningWithJourney.Games
 
         public void SpeakLowercase(string letter)
         {
+            int index = LetterIndex(letter);
+            var clip = GetClip(lowercaseClips, index);
+            if (clip == null && index >= 0)
+                clip = Resources.Load<AudioClip>("JourneyVoice/ABC/Lower_" + letter.ToUpperInvariant());
+            if (clip != null) { PlayClip(clip); return; }
             SpeakFallback("Lowercase " + letter.ToLowerInvariant());
         }
 
@@ -122,6 +131,19 @@ namespace LearningWithJourney.Games
 #endif
         }
 
+        void LoadLowercaseClips()
+        {
+            if (lowercaseClips == null || lowercaseClips.Length != 26)
+                lowercaseClips = new AudioClip[26];
+
+            for (int i = 0; i < 26; i++)
+            {
+                if (lowercaseClips[i] != null) continue;
+                string letter = ((char)('A' + i)).ToString();
+                lowercaseClips[i] = Resources.Load<AudioClip>("JourneyVoice/ABC/Lower_" + letter);
+            }
+        }
+
         static int LetterIndex(string letter)
         {
             if (string.IsNullOrEmpty(letter)) return -1;
@@ -132,7 +154,12 @@ namespace LearningWithJourney.Games
         public void SpeakTryAgain() => SpeakFallback("Almost. Try again.");
         public void SpeakRoundComplete() => SpeakFallback("Great job. You matched them all.");
         public void SpeakLevelComplete(int level) => SpeakFallback("Level " + level + " complete.");
-        public void SpeakWorldComplete() => SpeakFallback("Amazing. You finished Alphabet Match World.");
+        public void SpeakWorldComplete()
+        {
+            worldCompleteClip ??= Resources.Load<AudioClip>("JourneyVoice/MATCH/Alphabet_Match_World_Complete");
+            if (worldCompleteClip != null) { PlayClip(worldCompleteClip); return; }
+            SpeakFallback("Amazing. You finished Alphabet Match World.");
+        }
 
         IEnumerator PlayLetterWordSequence(AudioClip letterClip, AudioClip wordClip)
         {
@@ -148,6 +175,7 @@ namespace LearningWithJourney.Games
         void PlayClip(AudioClip clip)
         {
             if (audioSource == null || clip == null) return;
+            StopAndroidTts();
             audioSource.Stop();
             audioSource.PlayOneShot(clip);
         }
@@ -162,6 +190,10 @@ namespace LearningWithJourney.Games
         {
             if (string.IsNullOrWhiteSpace(text)) return;
 
+            // A new fallback prompt must never overlap a clip or older TTS voice.
+            if (audioSource != null) audioSource.Stop();
+            StopAndroidTts();
+
 #if UNITY_ANDROID && !UNITY_EDITOR
             if (ttsReady && tts != null)
             {
@@ -172,6 +204,17 @@ namespace LearningWithJourney.Games
 
 #if UNITY_EDITOR
             Debug.Log("Journey Alphabet Match voice: " + text);
+#endif
+        }
+
+        void StopAndroidTts()
+        {
+#if UNITY_ANDROID && !UNITY_EDITOR
+            if (tts != null)
+            {
+                try { tts.Call("stop"); }
+                catch (System.Exception) { }
+            }
 #endif
         }
 

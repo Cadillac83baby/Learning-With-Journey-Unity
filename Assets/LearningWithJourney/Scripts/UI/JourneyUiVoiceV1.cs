@@ -160,6 +160,9 @@ namespace LearningWithJourney.UI
             }
 
             source.Stop();
+            // Bring the Counting menu cue up to the same voice level as the
+            // other menu prompts without changing the background music.
+            source.volume = resourcePath == MenuCounting ? 1f : .92f;
             source.clip = clip;
             source.Play();
         }
