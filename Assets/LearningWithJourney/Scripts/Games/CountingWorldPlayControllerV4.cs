@@ -29,6 +29,8 @@ namespace LearningWithJourney.Games
         [Header("Number Audio - Optional")]
         [SerializeField] AudioSource numberAudioSource;
         [SerializeField] AudioClip[] numberClips;
+        AudioClip correctPraiseClip;
+        AudioClip retryPraiseClip;
 
         [Header("Progression")]
         [SerializeField, Range(1, 10)] int totalLevels = 10;
@@ -94,13 +96,22 @@ namespace LearningWithJourney.Games
 
         void LoadNumberVoiceIfNeeded()
         {
-            if (numberClips != null && numberClips.Length >= 20) return;
-            var loaded = Resources.LoadAll<AudioClip>("JourneyVoice/NUMBERS");
-            if (loaded == null || loaded.Length == 0) return;
+            correctPraiseClip =
+                Resources.Load<AudioClip>("JourneyVoice/COUNTING/COUNT-correct");
+
+            retryPraiseClip =
+                Resources.Load<AudioClip>("JourneyVoice/COUNTING/COUNT_retry");
             numberClips = new AudioClip[20];
+
             for (int i = 0; i < numberClips.Length; i++)
-                numberClips[i] = Resources.Load<AudioClip>($"JourneyVoice/NUMBERS/{i + 1:00}");
-            Debug.Log($"[LearningWithJourney] Counting number audio wired: {System.Array.FindAll(numberClips, c => c != null).Length}/20 clips.");
+            {
+                numberClips[i] =
+                    Resources.Load<AudioClip>($"JourneyVoice/COUNTING/Count_{i + 1:00}");
+            }
+
+            Debug.Log(
+                $"[LearningWithJourney] Counting game audio wired: " +
+                $"{System.Array.FindAll(numberClips, c => c != null).Length}/20 clips.");
         }
 
         void OnDestroy()
@@ -427,6 +438,21 @@ namespace LearningWithJourney.Games
             ShowCompletedState();
         }
 
+        void PlayCountingFeedback(AudioClip clip, string label)
+        {
+            if (numberAudioSource == null || clip == null)
+            {
+                Debug.LogWarning(
+                    $"[LearningWithJourney] Counting feedback clip missing: {label}");
+                return;
+            }
+
+            numberAudioSource.Stop();
+            numberAudioSource.PlayOneShot(clip);
+
+            Debug.Log(
+                $"[LearningWithJourney] Counting feedback played: {label}");
+        }
         void ShowCompletedState()
         {
             worldCompleted = true;

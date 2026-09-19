@@ -63,7 +63,7 @@ namespace LearningWithJourney.UI
             SetSelection(
                 "CHOOSE A BOOK SHELF",
                 "Pick something fun to read and learn with Journey!",
-                "What should we read today?");
+                "Welcome to the library! I love listening to my mom read. Choose a book, and let's read together.");
         }
 
         public void SelectABCBooks()
@@ -72,7 +72,7 @@ namespace LearningWithJourney.UI
                 "ABC",
                 "ABC BOOKS",
                 "Letters, sounds, and first words with big pictures and simple preschool reading.",
-                "Let's read our ABCs together!");
+                "Let's read an ABC book with Mom.");
         }
 
         public void SelectNumbersCounting()
@@ -81,7 +81,7 @@ namespace LearningWithJourney.UI
                 "NUMBERS",
                 "NUMBERS AND COUNTING",
                 "Counting stories and number practice from 1 through 20.",
-                "Let's count while we read!");
+                "Let's read and practice numbers with Mom.");
         }
 
         public void SelectColorsShapes()
@@ -90,7 +90,7 @@ namespace LearningWithJourney.UI
                 "COLORS",
                 "COLORS AND SHAPES",
                 "Bright picture pages for colors, shapes, sorting, and early visual learning.",
-                "Can you find your favorite color?");
+                "Let's read and learn about colors with Mom.");
         }
 
         public void SelectStoryTime()
@@ -99,7 +99,7 @@ namespace LearningWithJourney.UI
                 "STORY",
                 "STORY TIME",
                 "Short preschool stories with pictures, page turns, and Journey's read-aloud prompts.",
-                "Story time is one of my favorite times!");
+                "Let's listen to Mom read a story.");
         }
 
         public void OpenSelectedBook()

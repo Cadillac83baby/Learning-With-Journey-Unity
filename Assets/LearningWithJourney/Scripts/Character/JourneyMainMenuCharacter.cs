@@ -107,20 +107,20 @@ namespace LearningWithJourney.Character
 
             StopIdle();
 
-            ShowSpeech("Hi! I’m Journey! Let’s learn and have fun together!");
+            ShowSpeech("Hi! Iâ€™m Journey! Letâ€™s learn and have fun together!");
             AudioClip greeting = greetingClips != null && greetingClips.Length > 0
                 ? greetingClips[0]
                 : Resources.Load<AudioClip>("JourneyVoice/UI/MENU_welcome");
 
             if (greeting != null)
-                yield return SpeakRoutine(greeting, 0f);
+                yield return SpeakRoutine(greeting, -1.0f);
             else
                 yield return TalkForDuration(3.2f);
 
             AudioClip choose = Resources.Load<AudioClip>("JourneyVoice/UI/Menu_choose");
             if (choose != null)
             {
-                ShowSpeech("Choose a game, and let’s play!");
+                ShowSpeech("Choose a game, and letâ€™s play!");
                 yield return SpeakRoutine(choose, 0f);
             }
 
@@ -139,7 +139,7 @@ namespace LearningWithJourney.Character
             AudioClip choose = Resources.Load<AudioClip>("JourneyVoice/UI/Menu_choose");
             if (choose != null)
             {
-                ShowSpeech("Choose a game, and let’s play!");
+                ShowSpeech("Choose a game, and letâ€™s play!");
                 yield return SpeakRoutine(choose, 0f);
             }
 

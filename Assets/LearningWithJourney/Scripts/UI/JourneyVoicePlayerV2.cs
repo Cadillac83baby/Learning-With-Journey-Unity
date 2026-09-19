@@ -95,9 +95,9 @@ namespace LearningWithJourney.UI
         public void PlayPage(string bookId, int pageIndex)
         {
             string normalized = NormalizeBookId(bookId);
-            AudioClip clip = FindOverride(normalized, pageIndex);
+            AudioClip clip = Resources.Load<AudioClip>($"JourneyVoice/{normalized}/{pageIndex + 1:00}");
             if (clip == null)
-                clip = Resources.Load<AudioClip>($"JourneyVoice/{normalized}/{pageIndex + 1:00}");
+                clip = FindOverride(normalized, pageIndex);
 
             PlayVoice(clip, $"Journey narration for {normalized} page {pageIndex + 1}");
         }
@@ -105,8 +105,8 @@ namespace LearningWithJourney.UI
         public bool HasPageClip(string bookId, int pageIndex)
         {
             string normalized = NormalizeBookId(bookId);
-            if (FindOverride(normalized, pageIndex) != null) return true;
-            return Resources.Load<AudioClip>($"JourneyVoice/{normalized}/{pageIndex + 1:00}") != null;
+            if (Resources.Load<AudioClip>($"JourneyVoice/{normalized}/{pageIndex + 1:00}") != null) return true;
+            return FindOverride(normalized, pageIndex) != null;
         }
 
         public void PlayPageTurn()

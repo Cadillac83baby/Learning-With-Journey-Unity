@@ -123,7 +123,7 @@ namespace LearningWithJourney.Core
                 Debug.Log($"[LearningWithJourney] Playing game prompt: {cueResourcePath}");
 
                 // Leave a small tail so the final consonant is not clipped.
-                yield return new WaitForSecondsRealtime(cue.length + .04f);
+                yield return new WaitForSecondsRealtime(Mathf.Max(0.1f, cue.length - 0.20f) + .04f);
                 if (pendingLoad != null)
                 {
                     pendingLoad.allowSceneActivation = true;

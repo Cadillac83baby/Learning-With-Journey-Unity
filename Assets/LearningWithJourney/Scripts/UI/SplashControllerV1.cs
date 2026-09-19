@@ -33,14 +33,164 @@ namespace LearningWithJourney.UI
                 startupAudioSource.Stop();
                 startupAudioSource.time = 0f;
                 startupAudioSource.Play();
+            startupAudioSource.volume *= Mathf.Pow(10f, -2f / 20f);
                 waitSeconds = Mathf.Max(waitSeconds, startupAudioSource.clip.length + Mathf.Max(0f, audioTailPaddingSeconds));
             }
 
-            yield return new WaitForSecondsRealtime(waitSeconds);
+            float fadeSeconds =
+                startupAudioSource != null && startupAudioSource.clip != null
+                    ? Mathf.Min(.45f, startupAudioSource.clip.length)
+                    : 0f;
+
+            yield return new WaitForSecondsRealtime(
+                Mathf.Max(0f, waitSeconds - fadeSeconds));
+
+            if (fadeSeconds > 0f && startupAudioSource != null)
+                yield return StartCoroutine(FadeOutStartupAudio(fadeSeconds));
 
             var service = GameProgressService.Instance;
             string next = service != null && service.HasPlayerName ? mainMenuScene : nameSetupScene;
+            yield return StartCoroutine(ShowBrandInterstitial(next));
+        }
+
+        IEnumerator FadeOutStartupAudio(float seconds)
+        {
+            if (startupAudioSource == null) yield break;
+
+            float startVolume = startupAudioSource.volume;
+            float elapsed = 0f;
+
+            while (elapsed < seconds)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                startupAudioSource.volume =
+                    Mathf.Lerp(startVolume, 0f, elapsed / seconds);
+                yield return null;
+            }
+
+            startupAudioSource.volume = 0f;
+            startupAudioSource.Stop();
+        }
+
+        IEnumerator ShowBrandInterstitial(string next)
+        {
+            HideLoadingCredits();
+
+            GameObject root = new GameObject("BrandInterstitial");
+            Canvas canvas = root.AddComponent<Canvas>();
+            canvas.renderMode = RenderMode.ScreenSpaceOverlay;
+            canvas.overrideSorting = true;
+            canvas.sortingOrder = 5000;
+
+            var scaler = root.AddComponent<UnityEngine.UI.CanvasScaler>();
+            scaler.uiScaleMode =
+                UnityEngine.UI.CanvasScaler.ScaleMode.ScaleWithScreenSize;
+            scaler.referenceResolution = new Vector2(1080f, 1920f);
+            scaler.matchWidthOrHeight = .5f;
+
+            root.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+
+            GameObject background = new GameObject(
+                "BlackBackground",
+                typeof(RectTransform),
+                typeof(UnityEngine.UI.Image));
+
+            background.transform.SetParent(canvas.transform, false);
+
+            RectTransform backgroundRect =
+                background.GetComponent<RectTransform>();
+
+            backgroundRect.anchorMin = Vector2.zero;
+            backgroundRect.anchorMax = Vector2.one;
+            backgroundRect.offsetMin = Vector2.zero;
+            backgroundRect.offsetMax = Vector2.zero;
+
+            background.GetComponent<UnityEngine.UI.Image>().color = Color.black;
+
+            CreateBrandText(
+                canvas.transform,
+                "PoweredByText",
+                "Powered by: Down $outh Hu$tla Music Ent",
+                .54f,
+                .66f,
+                42f);
+
+            CreateBrandText(
+                canvas.transform,
+                "EstablishedText",
+                "Established: Sept 16, 2026",
+                .39f,
+                .49f,
+                28f);
+
+            yield return new WaitForSecondsRealtime(6f);
+
+            Destroy(root);
             SceneManager.LoadScene(next);
+        }
+
+        void HideLoadingCredits()
+        {
+            var labels =
+                FindObjectsOfType<TMPro.TMP_Text>(true);
+
+            foreach (var label in labels)
+            {
+                if (label == null) continue;
+
+                string value = label.text ?? string.Empty;
+
+                if (value.IndexOf(
+                        "Powered by:",
+                        System.StringComparison.OrdinalIgnoreCase) >= 0 ||
+                    value.IndexOf(
+                        "Established:",
+                        System.StringComparison.OrdinalIgnoreCase) >= 0)
+                {
+                    label.gameObject.SetActive(false);
+                }
+            }
+        }
+
+        void CreateBrandText(
+            Transform parent,
+            string objectName,
+            string value,
+            float minY,
+            float maxY,
+            float size)
+        {
+            GameObject textObject = new GameObject(
+                objectName,
+                typeof(RectTransform),
+                typeof(TMPro.TextMeshProUGUI));
+
+            textObject.transform.SetParent(parent, false);
+
+            RectTransform rect =
+                textObject.GetComponent<RectTransform>();
+
+            rect.anchorMin = new Vector2(.08f, minY);
+            rect.anchorMax = new Vector2(.92f, maxY);
+            rect.offsetMin = Vector2.zero;
+            rect.offsetMax = Vector2.zero;
+
+            var label =
+                textObject.GetComponent<TMPro.TextMeshProUGUI>();
+
+            label.text = value;
+            label.color = Color.white;
+            label.fontStyle = TMPro.FontStyles.Bold;
+            label.alignment = TMPro.TextAlignmentOptions.Center;
+            label.fontSize = size;
+            label.enableAutoSizing = true;
+            label.fontSizeMin = 18f;
+            label.fontSizeMax = size;
+
+            if (TMPro.TMP_Settings.defaultFontAsset != null)
+                label.font = TMPro.TMP_Settings.defaultFontAsset;
+
+            label.raycastTarget = false;
         }
     }
 }
