@@ -99,7 +99,7 @@ namespace LearningWithJourney.EditorTools
             Texture2D logo = AssetDatabase.LoadAssetAtPath<Texture2D>(LogoPath);
             if (logo != null)
             {
-                var glow = CreateImage(canvas.transform, "LogoGlow", new Vector2(.08f, .245f), new Vector2(.92f, .805f), new Color(.45f, .08f, .55f, .32f));
+                var glow = CreateImage(canvas.transform, "LogoGlow", new Vector2(.08f, .245f), new Vector2(.92f, .805f), Color.clear);
                 AddOutline(glow.gameObject, new Color(1f, .18f, .62f, .65f), new Vector2(5f, -5f));
                 glow.raycastTarget = false;
 

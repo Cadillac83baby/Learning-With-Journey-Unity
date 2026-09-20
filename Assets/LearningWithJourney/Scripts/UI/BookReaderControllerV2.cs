@@ -118,9 +118,9 @@ namespace LearningWithJourney.UI
 
             if (bookTitleText != null) bookTitleText.text = BookTitle(bookId);
             if (pageHeadingText != null) pageHeadingText.text = page.heading;
-            if (pageBodyText != null) pageBodyText.text = page.body;
+            if (pageBodyText != null) pageBodyText.text = JourneyVoiceScriptCatalogV2.GetBook(bookId)[pageIndex];
             if (pageNumberText != null) pageNumberText.text = "PAGE " + (pageIndex + 1) + " / " + pages.Length;
-            if (journeySpeechText != null) journeySpeechText.text = page.journeyLine;
+            if (journeySpeechText != null) journeySpeechText.text = JourneyVoiceScriptCatalogV2.GetBook(bookId)[pageIndex];
             if (pageArtwork != null) pageArtwork.SetPage(bookId, pageIndex);
 
             if (previousButton != null) previousButton.interactable = pageIndex > 0;

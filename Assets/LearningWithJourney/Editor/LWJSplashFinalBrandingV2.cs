@@ -118,7 +118,7 @@ namespace LearningWithJourney.EditorTools
 
             Image glow = GetOrCreateImage(canvas.transform, "BrandGlow");
             SetRect(glow.rectTransform, new Vector2(.09f, .22f), new Vector2(.91f, .82f));
-            glow.color = new Color(.25f, .03f, .36f, .35f);
+            glow.color = Color.clear;
             glow.raycastTarget = false;
             glow.transform.SetSiblingIndex(Mathf.Min(1, glow.transform.parent.childCount - 1));
 

@@ -16,6 +16,7 @@ namespace LearningWithJourney.Games
         AudioClip worldCompleteClip;
         readonly Queue<AudioClip> pendingClips = new Queue<AudioClip>();
         Coroutine playbackRoutine;
+        Coroutine fallbackRoutine;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
         AndroidJavaObject tts;
@@ -143,14 +144,26 @@ namespace LearningWithJourney.Games
         void PlayClip(AudioClip clip)
         {
             if (audioSource == null || clip == null) return;
+
+            GameplayPromptAudioV1.StopScenePrompt();
             StopAndroidTts();
+            pendingClips.Clear();
+
+            if (playbackRoutine != null)
+            {
+                StopCoroutine(playbackRoutine);
+                playbackRoutine = null;
+            }
+
+            audioSource.Stop();
             pendingClips.Enqueue(clip);
-            if (playbackRoutine == null)
-                playbackRoutine = StartCoroutine(DrainVoice());
+            playbackRoutine = StartCoroutine(DrainVoice());
         }
 
         System.Collections.IEnumerator DrainVoice()
         {
+            while (GameplayPromptAudioV1.IsScenePromptPlaying)
+                yield return null;
             while (pendingClips.Count > 0)
             {
                 AudioClip clip = pendingClips.Dequeue();
@@ -170,8 +183,15 @@ namespace LearningWithJourney.Games
         void StopVoicePlayback()
         {
             pendingClips.Clear();
-            if (playbackRoutine != null) { StopCoroutine(playbackRoutine); playbackRoutine = null; }
-            if (audioSource != null) audioSource.Stop();
+
+            if (playbackRoutine != null)
+            {
+                StopCoroutine(playbackRoutine);
+                playbackRoutine = null;
+            }
+
+            if (audioSource != null)
+                audioSource.Stop();
         }
 
         AudioClip GetClip(AudioClip[] clips, int index)
@@ -196,13 +216,15 @@ namespace LearningWithJourney.Games
         {
             if (string.IsNullOrWhiteSpace(text)) return;
 
-            if (audioSource != null) audioSource.Stop();
+            if (fallbackRoutine != null) { StopCoroutine(fallbackRoutine); fallbackRoutine = null; }
+            GameplayPromptAudioV1.StopScenePrompt();
+            StopVoicePlayback();
             StopAndroidTts();
 
 #if UNITY_ANDROID && !UNITY_EDITOR
             if (ttsReady && tts != null)
             {
-                tts.Call<int>("speak", text, 0, null, "LWJ_ABC");
+                fallbackRoutine = StartCoroutine(SpeakFallbackAfterScenePrompt(text));
                 return;
             }
 #endif

@@ -88,9 +88,9 @@ namespace LearningWithJourney.Games
 
             totalLevels = Mathf.Clamp(totalLevels, 1, 10);
             roundsPerLevel = Mathf.Max(1, roundsPerLevel);
-            currentLevel = Mathf.Clamp(PlayerPrefs.GetInt(LevelKey, 1), 1, totalLevels);
+            currentLevel = Mathf.Clamp(GameLevelProgressV1.GetResumeLevel("ALPHABET_MATCH"), 1, totalLevels);
             round = Mathf.Clamp(PlayerPrefs.GetInt(RoundKey, 1), 1, roundsPerLevel);
-            worldCompleted = PlayerPrefs.GetInt(CompleteKey, 0) == 1;
+            worldCompleted = false;
 
             AllocateCardState();
             RefreshPoints();
@@ -115,6 +115,7 @@ namespace LearningWithJourney.Games
             currentLevel = 1;
             round = 1;
             worldCompleted = false;
+            GameLevelProgressV1.ResetGame("ALPHABET_MATCH");
             PlayerPrefs.DeleteKey(LevelKey);
             PlayerPrefs.DeleteKey(RoundKey);
             PlayerPrefs.DeleteKey(CompleteKey);
@@ -136,6 +137,8 @@ namespace LearningWithJourney.Games
         public void StartRound()
         {
             if (worldCompleted) return;
+
+            GameLevelProgressV1.BeginLevel("ALPHABET_MATCH", currentLevel);
 
             StopAllCoroutines();
             locked = false;
@@ -360,6 +363,7 @@ namespace LearningWithJourney.Games
                 int finished = currentLevel;
                 currentLevel++;
                 round = 1;
+                GameLevelProgressV1.BeginLevel("ALPHABET_MATCH", currentLevel);
                 SaveProgress();
                 GameProgressService.Instance?.AddReward(3, 15);
                 if (speechText) speechText.text = "Level " + finished + " complete!";
@@ -368,8 +372,8 @@ namespace LearningWithJourney.Games
                 StartRound();
                 yield break;
             }
-
             worldCompleted = true;
+            GameLevelProgressV1.CompleteLevel("ALPHABET_MATCH", currentLevel);
             PlayerPrefs.SetInt(CompleteKey, 1);
             PlayerPrefs.SetInt(LevelKey, totalLevels);
             PlayerPrefs.SetInt(RoundKey, roundsPerLevel);

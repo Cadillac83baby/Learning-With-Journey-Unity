@@ -120,7 +120,7 @@ namespace LearningWithJourney.UI
             busy = true;
             if (openTreasureButton != null) openTreasureButton.interactable = false;
             if (speechText != null) speechText.text = "Here it comes!";
-            PlayRewardsVoice(RewardsWonVoice);
+            PlayRewardsVoice(RewardsOpenVoice);
 
             ResetTreasurePose();
             yield return ScaleTo(chestRoot, Vector3.one * 1.045f, .16f);
@@ -176,6 +176,7 @@ namespace LearningWithJourney.UI
             PlayerPrefs.Save();
 
             if (speechText != null) speechText.text = "You did it! Your prize is yours!";
+            PlayRewardsVoice(RewardsWonVoice);
             Refresh();
 
             yield return new WaitForSeconds(1.2f);
@@ -185,7 +186,8 @@ namespace LearningWithJourney.UI
 
         void PlayRewardsStatusVoice()
         {
-            PlayRewardsVoice(TreasureAvailable() ? RewardsOpenVoice : RewardsKeepLearningVoice);
+            if (!TreasureAvailable())
+                PlayRewardsVoice(RewardsKeepLearningVoice);
         }
 
         void PlayRewardsVoice(string resourcePath)

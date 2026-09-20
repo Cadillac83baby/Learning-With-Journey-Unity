@@ -387,6 +387,7 @@ namespace LearningWithJourney.Games
             {
                 if (feedbackText) feedbackText.text = "Good try. Pick another number.";
                 if (speechText) speechText.text = "Try again!";
+                  PlayCountingFeedback(retryPraiseClip, "retry");
                 GameProgressService.Instance?.RegisterMiss();
                 return;
             }
@@ -394,6 +395,7 @@ namespace LearningWithJourney.Games
             SetAnswersInteractable(false);
             if (feedbackText) feedbackText.text = "Great counting!";
             if (speechText) speechText.text = $"Yes! There are {targetCount} {currentObjectPlural}!";
+              PlayCountingFeedback(correctPraiseClip, "correct");
 
             GameProgressService.Instance?.AwardCorrect("counting");
             GameProgressService.Instance?.CompleteGame();

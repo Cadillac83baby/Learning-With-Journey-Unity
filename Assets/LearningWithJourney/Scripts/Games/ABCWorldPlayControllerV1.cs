@@ -76,9 +76,9 @@ namespace LearningWithJourney.Games
 
             totalLevels = Mathf.Clamp(totalLevels, 1, 10);
             roundsPerLevel = Mathf.Max(1, roundsPerLevel);
-            currentLevel = Mathf.Clamp(PlayerPrefs.GetInt(LevelKey, 1), 1, totalLevels);
+            currentLevel = Mathf.Clamp(GameLevelProgressV1.GetResumeLevel("ABC_WORLD"), 1, totalLevels);
             round = Mathf.Clamp(PlayerPrefs.GetInt(RoundKey, 1), 1, roundsPerLevel);
-            worldCompleted = PlayerPrefs.GetInt(CompleteKey, 0) == 1;
+            worldCompleted = false;
 
             WireRepeatButtons();
             RefreshPoints();
@@ -110,6 +110,7 @@ namespace LearningWithJourney.Games
             round = 1;
             worldCompleted = false;
             previousTargetIndex = -1;
+            GameLevelProgressV1.ResetGame("ABC_WORLD");
             PlayerPrefs.DeleteKey(LevelKey);
             PlayerPrefs.DeleteKey(RoundKey);
             PlayerPrefs.DeleteKey(CompleteKey);
@@ -120,6 +121,8 @@ namespace LearningWithJourney.Games
         public void StartRound()
         {
             if (worldCompleted) return;
+
+            GameLevelProgressV1.BeginLevel("ABC_WORLD", currentLevel);
 
             CancelInvoke(nameof(StartRound));
             currentMode = GetChallengeMode(currentLevel);
@@ -188,10 +191,6 @@ namespace LearningWithJourney.Games
                     if (focusLetterText) focusLetterText.text = lower;
                     if (wordText) wordText.text = $"{letter} is for {word}";
                     if (speechText) speechText.text = $"Find the big letter that matches {lower}.";
-                    if (journeySpeech != null)
-                        journeySpeech.SpeakLetter(targetIndex, letter);
-                    else
-                        PlayLegacyLetterAudio(targetIndex);
                     break;
 
                 case ChallengeMode.BeginningLetter:
@@ -199,10 +198,6 @@ namespace LearningWithJourney.Games
                     if (focusLetterText) focusLetterText.text = "?";
                     if (wordText) wordText.text = word;
                     if (speechText) speechText.text = $"What letter does {word} start with?";
-                    if (journeySpeech != null)
-                        journeySpeech.SpeakWord(targetIndex, word);
-                    else
-                        PlayLegacyLetterAudio(targetIndex);
                     break;
 
                 default:
@@ -210,10 +205,6 @@ namespace LearningWithJourney.Games
                     if (focusLetterText) focusLetterText.text = letter;
                     if (wordText) wordText.text = $"{letter} is for {word}";
                     if (speechText) speechText.text = $"{letter} is for {word}. Find {letter} below!";
-                    if (journeySpeech != null)
-                        journeySpeech.SpeakPhrase(targetIndex, letter, word);
-                    else
-                        PlayLegacyLetterAudio(targetIndex);
                     break;
             }
         }
@@ -291,6 +282,8 @@ namespace LearningWithJourney.Games
         {
             if (worldCompleted) return;
 
+            GameLevelProgressV1.BeginLevel("ABC_WORLD", currentLevel);
+
             string correct = Alphabet[targetIndex].ToString();
             string word = Words[targetIndex];
 
@@ -332,6 +325,7 @@ namespace LearningWithJourney.Games
                 int completedLevel = currentLevel;
                 currentLevel++;
                 round = 1;
+                GameLevelProgressV1.BeginLevel("ABC_WORLD", currentLevel);
                 SaveProgress();
                 GameProgressService.Instance?.AddReward(3, 15);
 
@@ -342,8 +336,8 @@ namespace LearningWithJourney.Games
                 Invoke(nameof(StartRound), 2.3f);
                 return;
             }
-
             worldCompleted = true;
+            GameLevelProgressV1.CompleteLevel("ABC_WORLD", currentLevel);
             PlayerPrefs.SetInt(CompleteKey, 1);
             PlayerPrefs.SetInt(LevelKey, totalLevels);
             PlayerPrefs.SetInt(RoundKey, roundsPerLevel);

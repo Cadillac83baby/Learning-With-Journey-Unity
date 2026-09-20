@@ -124,7 +124,7 @@ namespace LearningWithJourney.UI
                 yield return ($"{id}_{i + 1:00}", lines[i]);
         }
 
-        static string[] GetBook(string bookId)
+        public static string[] GetBook(string bookId)
         {
             switch ((bookId ?? "ABC").Trim().ToUpperInvariant())
             {

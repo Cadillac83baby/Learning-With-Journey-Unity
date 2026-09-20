@@ -33,13 +33,13 @@ namespace LearningWithJourney.UI
                 startupAudioSource.Stop();
                 startupAudioSource.time = 0f;
                 startupAudioSource.Play();
-            startupAudioSource.volume *= Mathf.Pow(10f, -2f / 20f);
+            startupAudioSource.volume *= Mathf.Pow(10f, -1f / 20f);
                 waitSeconds = Mathf.Max(waitSeconds, startupAudioSource.clip.length + Mathf.Max(0f, audioTailPaddingSeconds));
             }
 
             float fadeSeconds =
                 startupAudioSource != null && startupAudioSource.clip != null
-                    ? Mathf.Min(.45f, startupAudioSource.clip.length)
+                    ? Mathf.Min(.75f, startupAudioSource.clip.length)
                     : 0f;
 
             yield return new WaitForSecondsRealtime(
@@ -63,8 +63,12 @@ namespace LearningWithJourney.UI
             while (elapsed < seconds)
             {
                 elapsed += Time.unscaledDeltaTime;
+                float progress = Mathf.Clamp01(elapsed / seconds);
+                float smoothProgress =
+                    progress * progress * (3f - 2f * progress);
+
                 startupAudioSource.volume =
-                    Mathf.Lerp(startVolume, 0f, elapsed / seconds);
+                    Mathf.Lerp(startVolume, 0f, smoothProgress);
                 yield return null;
             }
 
@@ -89,6 +93,10 @@ namespace LearningWithJourney.UI
             scaler.matchWidthOrHeight = .5f;
 
             root.AddComponent<UnityEngine.UI.GraphicRaycaster>();
+
+            var canvasGroup = root.AddComponent<CanvasGroup>();
+            canvasGroup.alpha = 0f;
+            DontDestroyOnLoad(root);
 
             GameObject background = new GameObject(
                 "BlackBackground",
@@ -123,10 +131,35 @@ namespace LearningWithJourney.UI
                 .49f,
                 28f);
 
+            yield return FadeCanvasGroup(canvasGroup, 1f, .45f);
             yield return new WaitForSecondsRealtime(6f);
 
-            Destroy(root);
-            SceneManager.LoadScene(next);
+            var transition = root.AddComponent<SplashTransitionOverlayV1>();
+            transition.LoadSceneWithFade(next, canvasGroup);
+        }
+
+
+        IEnumerator FadeCanvasGroup(
+            CanvasGroup group,
+            float target,
+            float seconds)
+        {
+            if (group == null) yield break;
+
+            float start = group.alpha;
+            float elapsed = 0f;
+
+            while (elapsed < seconds)
+            {
+                elapsed += Time.unscaledDeltaTime;
+                group.alpha = Mathf.Lerp(
+                    start,
+                    target,
+                    elapsed / seconds);
+                yield return null;
+            }
+
+            group.alpha = target;
         }
 
         void HideLoadingCredits()
@@ -192,5 +225,58 @@ namespace LearningWithJourney.UI
 
             label.raycastTarget = false;
         }
+    }
+}
+
+public sealed class SplashTransitionOverlayV1 : MonoBehaviour
+{
+    public void LoadSceneWithFade(
+        string next,
+        CanvasGroup group)
+    {
+        StartCoroutine(LoadRoutine(next, group));
+    }
+
+    IEnumerator LoadRoutine(
+        string next,
+        CanvasGroup group)
+    {
+        AsyncOperation pending =
+            SceneManager.LoadSceneAsync(next);
+
+        if (pending != null)
+            yield return pending;
+
+        yield return null;
+
+        yield return FadeCanvasGroup(
+            group,
+            0f,
+            .45f);
+
+        Destroy(gameObject);
+    }
+
+    IEnumerator FadeCanvasGroup(
+        CanvasGroup group,
+        float target,
+        float seconds)
+    {
+        if (group == null) yield break;
+
+        float start = group.alpha;
+        float elapsed = 0f;
+
+        while (elapsed < seconds)
+        {
+            elapsed += Time.unscaledDeltaTime;
+            group.alpha = Mathf.Lerp(
+                start,
+                target,
+                elapsed / seconds);
+            yield return null;
+        }
+
+        group.alpha = target;
     }
 }
