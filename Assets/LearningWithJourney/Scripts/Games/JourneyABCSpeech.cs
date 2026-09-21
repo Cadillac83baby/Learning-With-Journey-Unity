@@ -107,6 +107,68 @@ namespace LearningWithJourney.Games
             SpeakFallback($"{letter} is for {word}");
         }
 
+public System.Collections.IEnumerator WaitForVoiceToFinish()
+        {
+            while (playbackRoutine != null ||
+                   (audioSource != null && audioSource.isPlaying))
+            {
+                yield return null;
+            }
+        }
+
+        public System.Collections.IEnumerator PlayRetryAndWait()
+        {
+            AudioClip retryClip =
+                Resources.Load<AudioClip>(VoiceFolder + "ABC_Retry");
+
+            if (retryClip == null)
+            {
+                Debug.LogWarning(
+                    "Journey ABC retry audio was not found: Resources/" +
+                    VoiceFolder + "ABC_Retry");
+                yield break;
+            }
+
+            PlayClip(retryClip);
+            yield return StartCoroutine(WaitForVoiceToFinish());
+        }
+
+        public System.Collections.IEnumerator SpeakPhraseAndWait(
+            int index,
+            string letter,
+            string word)
+        {
+            AudioClip phrase = GetClip(phraseClips, index);
+
+            if (phrase != null)
+            {
+                PlayClip(phrase);
+                yield return StartCoroutine(WaitForVoiceToFinish());
+                yield break;
+            }
+
+            AudioClip letterClip =
+                GetClip(letterClips, index) ?? LoadLetterClip(index);
+
+            AudioClip wordClip =
+                GetClip(wordClips, index) ?? LoadWordClip(index);
+
+            if (letterClip != null)
+            {
+                PlayClip(letterClip);
+                yield return StartCoroutine(WaitForVoiceToFinish());
+            }
+
+            if (wordClip != null)
+            {
+                PlayClip(wordClip);
+                yield return StartCoroutine(WaitForVoiceToFinish());
+            }
+
+            if (letterClip == null && wordClip == null)
+                SpeakFallback($"{letter} is for {word}");
+        }
+
         public void SpeakPrompt(int index, string letter, string word)
         {
             SpeakFallback($"Can you find the letter {letter}? {letter} is for {word}.");

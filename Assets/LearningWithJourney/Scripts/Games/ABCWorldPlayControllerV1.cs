@@ -278,10 +278,19 @@ namespace LearningWithJourney.Games
             }
         }
 
+bool answerBusy;
+
         void Answer(string value)
         {
-            if (worldCompleted) return;
+            if (worldCompleted || answerBusy) return;
 
+            answerBusy = true;
+            SetAnswersInteractable(false);
+            StartCoroutine(HandleAnswer(value));
+        }
+
+        System.Collections.IEnumerator HandleAnswer(string value)
+        {
             GameLevelProgressV1.BeginLevel("ABC_WORLD", currentLevel);
 
             string correct = Alphabet[targetIndex].ToString();
@@ -292,22 +301,44 @@ namespace LearningWithJourney.Games
                 if (feedbackText) feedbackText.text = "Good try. Pick another letter.";
                 if (speechText) speechText.text = $"Try again. Look for {correct}.";
                 GameProgressService.Instance?.RegisterMiss();
-                return;
+
+                if (journeySpeech != null)
+                    yield return StartCoroutine(journeySpeech.PlayRetryAndWait());
+
+                SetAnswersInteractable(true);
+                answerBusy = false;
+                yield break;
             }
 
-            SetAnswersInteractable(false);
             if (feedbackText) feedbackText.text = "Great job! You found it!";
             if (focusLetterText) focusLetterText.text = correct;
             if (wordText) wordText.text = $"{correct} is for {word}";
             if (speechText) speechText.text = $"Great job! {correct} is for {word}!";
 
-            journeySpeech?.SpeakPhrase(targetIndex, correct, word);
+            if (journeySpeech != null)
+            {
+                yield return StartCoroutine(
+                    journeySpeech.SpeakPhraseAndWait(targetIndex, correct, word));
+            }
 
             GameProgressService.Instance?.AwardCorrect("abc");
             GameProgressService.Instance?.CompleteGame();
-            if (journeyRect) StartCoroutine(CelebrateJourney());
+
+            if (journeyRect)
+                StartCoroutine(CelebrateJourney());
 
             AdvanceProgress();
+        }
+
+        System.Collections.IEnumerator PrepareNextRound(float minimumDelay)
+        {
+            if (journeySpeech != null)
+                yield return StartCoroutine(journeySpeech.WaitForVoiceToFinish());
+
+            yield return new WaitForSecondsRealtime(Mathf.Max(0f, minimumDelay));
+
+            answerBusy = false;
+            StartRound();
         }
 
         void AdvanceProgress()
@@ -316,7 +347,7 @@ namespace LearningWithJourney.Games
             {
                 round++;
                 SaveProgress();
-                Invoke(nameof(StartRound), 1.8f);
+                StartCoroutine(PrepareNextRound(1.8f));
                 return;
             }
 
@@ -333,7 +364,7 @@ namespace LearningWithJourney.Games
                 if (feedbackText) feedbackText.text = "New alphabet level unlocked!";
                 journeySpeech?.SpeakLevelComplete(completedLevel);
                 UpdateProgressHud();
-                Invoke(nameof(StartRound), 2.3f);
+                StartCoroutine(PrepareNextRound(2.3f));
                 return;
             }
             worldCompleted = true;

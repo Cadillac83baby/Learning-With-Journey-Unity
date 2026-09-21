@@ -132,6 +132,13 @@ namespace LearningWithJourney.UI
                 28f);
 
             yield return FadeCanvasGroup(canvasGroup, 1f, .45f);
+            CreateBrandText(
+                canvas.transform,
+                "TaglineText",
+                "Learn • Grow • Shine",
+                .31f,
+                .39f,
+                24f);
             yield return new WaitForSecondsRealtime(6f);
 
             var transition = root.AddComponent<SplashTransitionOverlayV1>();

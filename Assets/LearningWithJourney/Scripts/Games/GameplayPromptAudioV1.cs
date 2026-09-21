@@ -57,9 +57,12 @@ namespace LearningWithJourney.Games
                 AudioClip clip = Resources.Load<AudioClip>(path);
                 if (clip != null)
                 {
+                    source.volume = scene.name == "AlphabetMatchWorld"
+                        ? Mathf.Pow(10f, 2f / 20f)
+                        : 1f;
                     source.clip = clip;
                     source.time = 0f;
-                    source.Play();
+                    source.PlayOneShot(clip, scene.name == "AlphabetMatchWorld" ? 1.2589254f : 1f);
                 }
             }
         }

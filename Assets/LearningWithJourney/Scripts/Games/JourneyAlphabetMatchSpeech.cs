@@ -13,6 +13,8 @@ namespace LearningWithJourney.Games
         [SerializeField] AudioClip[] caseClips = new AudioClip[26];
         [SerializeField] AudioClip[] lowercaseClips = new AudioClip[26];
         AudioClip worldCompleteClip;
+        AudioClip correctFeedbackClip;
+        AudioClip retryClip;
 
 #if UNITY_ANDROID && !UNITY_EDITOR
         AndroidJavaObject tts;
@@ -42,6 +44,15 @@ namespace LearningWithJourney.Games
 
             LoadCaseClips();
             LoadLowercaseClips();
+            correctFeedbackClip = Resources.Load<AudioClip>("JourneyVoice/MATCH/MATCH_correct");
+            if (correctFeedbackClip == null)
+                correctFeedbackClip = Resources.Load<AudioClip>("JourneyVoice/MATCH/MATCH-correct");
+            if (correctFeedbackClip == null)
+                correctFeedbackClip = Resources.Load<AudioClip>("JourneyVoice/ABC/Praise_Great");
+            retryClip = Resources.Load<AudioClip>("JourneyVoice/MATCH/MATCH_retry");
+            if (retryClip == null)
+                retryClip = Resources.Load<AudioClip>("JourneyVoice/ABC/ABC_Retry");
+            LoadLetterWordClips();
             worldCompleteClip = Resources.Load<AudioClip>("JourneyVoice/MATCH/Alphabet_Match_World_Complete");
 
 #if UNITY_ANDROID && !UNITY_EDITOR
@@ -113,6 +124,83 @@ namespace LearningWithJourney.Games
             SpeakFallback("Great match. Uppercase " + letter + " matches lowercase " + letter.ToLowerInvariant());
         }
 
+void LoadLetterWordClips()
+        {
+            if (letterClips == null || letterClips.Length != 26)
+                letterClips = new AudioClip[26];
+
+            if (wordClips == null || wordClips.Length != 26)
+                wordClips = new AudioClip[26];
+
+            if (phraseClips == null || phraseClips.Length != 26)
+                phraseClips = new AudioClip[26];
+
+            int lettersLoaded = 0;
+            int wordsLoaded = 0;
+            int phrasesLoaded = 0;
+
+            for (int i = 0; i < 26; i++)
+            {
+                string letter = ((char)('A' + i)).ToString();
+
+                if (letterClips[i] == null)
+                    letterClips[i] =
+                        Resources.Load<AudioClip>(
+                            "JourneyVoice/ABC/Letter_" + letter);
+
+                if (letterClips[i] == null)
+                    letterClips[i] =
+                        Resources.Load<AudioClip>(
+                            "JourneyVoice/MATCH/Letter_" + letter);
+
+                if (wordClips[i] == null)
+                    wordClips[i] =
+                        Resources.Load<AudioClip>(
+                            "JourneyVoice/ABC/Word_" + letter);
+
+                if (wordClips[i] == null)
+                    wordClips[i] =
+                        Resources.Load<AudioClip>(
+                            "JourneyVoice/MATCH/Word_" + letter);
+
+                if (phraseClips[i] == null)
+                    phraseClips[i] =
+                        Resources.Load<AudioClip>(
+                            "JourneyVoice/ABC/Phrase_" + letter);
+
+                if (phraseClips[i] == null)
+                    phraseClips[i] =
+                        Resources.Load<AudioClip>(
+                            "JourneyVoice/MATCH/Phrase_" + letter);
+
+                if (letterClips[i] != null)
+                    lettersLoaded++;
+
+                if (wordClips[i] != null)
+                    wordsLoaded++;
+
+                if (phraseClips[i] != null)
+                    phrasesLoaded++;
+            }
+
+            retryClip =
+                Resources.Load<AudioClip>(
+                    "JourneyVoice/MATCH/MATCH_Retry") ??
+                Resources.Load<AudioClip>(
+                    "JourneyVoice/MATCH/MATCH_retry") ??
+                Resources.Load<AudioClip>(
+                    "JourneyVoice/ABC/ABC_Retry");
+
+#if UNITY_EDITOR
+            Debug.Log(
+                "Alphabet Match audio loaded: letters " +
+                lettersLoaded + "/26, words " +
+                wordsLoaded + "/26, phrases " +
+                phrasesLoaded + "/26, retry " +
+                (retryClip != null ? "yes" : "no"));
+#endif
+        }
+
         void LoadCaseClips()
         {
             if (caseClips == null || caseClips.Length != 26)
@@ -151,7 +239,146 @@ namespace LearningWithJourney.Games
             return c >= 'A' && c <= 'Z' ? c - 'A' : -1;
         }
 
-        public void SpeakTryAgain() => SpeakFallback("Almost. Try again.");
+public System.Collections.IEnumerator WaitForVoiceToFinish()
+        {
+            while (audioSource != null && audioSource.isPlaying)
+                yield return null;
+        }
+
+        IEnumerator WaitForFallbackVoice(float seconds)
+        {
+            yield return new WaitForSecondsRealtime(seconds);
+            yield return StartCoroutine(WaitForVoiceToFinish());
+        }
+
+        public System.Collections.IEnumerator SpeakCaseMatchAndWait(
+            string letter)
+        {
+            int index = LetterIndex(letter);
+            AudioClip clip = GetClip(caseClips, index);
+
+            if (clip != null)
+            {
+                PlayClip(clip);
+                yield return StartCoroutine(WaitForVoiceToFinish());
+                yield break;
+            }
+
+            SpeakCaseMatch(letter);
+            yield return StartCoroutine(WaitForFallbackVoice(1.4f));
+        }
+
+        public System.Collections.IEnumerator SpeakLowercaseAndWait(
+            string letter)
+        {
+            int index = LetterIndex(letter);
+            AudioClip clip = GetClip(lowercaseClips, index);
+
+            if (clip == null && index >= 0)
+            {
+                clip = Resources.Load<AudioClip>(
+                    "JourneyVoice/ABC/Lower_" +
+                    letter.ToUpperInvariant());
+            }
+
+            if (clip != null)
+            {
+                PlayClip(clip);
+                yield return StartCoroutine(WaitForVoiceToFinish());
+                yield break;
+            }
+
+            SpeakLowercase(letter);
+            yield return StartCoroutine(WaitForFallbackVoice(1.35f));
+        }
+
+        public System.Collections.IEnumerator SpeakPairAndWait(
+            int index,
+            string letter,
+            string word)
+        {
+            AudioClip phrase = GetClip(phraseClips, index);
+
+            if (phrase != null)
+            {
+                PlayClip(phrase);
+                yield return StartCoroutine(WaitForVoiceToFinish());
+                yield break;
+            }
+
+            AudioClip letterClip = GetClip(letterClips, index);
+            AudioClip wordClip = GetClip(wordClips, index);
+
+            if (letterClip != null)
+            {
+                PlayClip(letterClip);
+                yield return StartCoroutine(WaitForVoiceToFinish());
+            }
+
+            if (wordClip != null)
+            {
+                PlayClip(wordClip);
+                yield return StartCoroutine(WaitForVoiceToFinish());
+            }
+
+            if (letterClip == null && wordClip == null)
+            {
+                SpeakFallback(letter + " is for " + word);
+                yield return StartCoroutine(WaitForFallbackVoice(1.5f));
+            }
+        }
+
+public System.Collections.IEnumerator SpeakCorrectAndWait()
+{
+    if (correctFeedbackClip != null)
+    {
+        PlayClip(correctFeedbackClip);
+        yield return StartCoroutine(WaitForVoiceToFinish());
+        yield break;
+    }
+
+    SpeakFallback("Great job! You found a match.");
+    yield return StartCoroutine(WaitForFallbackVoice(.75f));
+}
+
+public System.Collections.IEnumerator SpeakTryAgainAndWait()
+        {
+            SpeakTryAgain();
+
+            if (retryClip != null)
+            {
+                yield return StartCoroutine(
+                    WaitForVoiceToFinish());
+            }
+            else
+            {
+                yield return new WaitForSecondsRealtime(.85f);
+            }
+        }
+
+        public System.Collections.IEnumerator SpeakRoundCompleteAndWait()
+        {
+            SpeakRoundComplete();
+            yield return StartCoroutine(WaitForFallbackVoice(1.65f));
+        }
+
+        public System.Collections.IEnumerator SpeakLevelCompleteAndWait(
+            int level)
+        {
+            SpeakLevelComplete(level);
+            yield return StartCoroutine(WaitForFallbackVoice(1.15f));
+        }
+
+public void SpeakTryAgain()
+        {
+            if (retryClip != null)
+            {
+                PlayClip(retryClip);
+                return;
+            }
+
+            SpeakFallback("Almost. Try again.");
+        }
         public void SpeakRoundComplete() => SpeakFallback("Great job. You matched them all.");
         public void SpeakLevelComplete(int level) => SpeakFallback("Level " + level + " complete.");
         public void SpeakWorldComplete()

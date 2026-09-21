@@ -280,14 +280,19 @@ namespace LearningWithJourney.Games
                 StartCoroutine(HandleMiss());
         }
 
-        IEnumerator HandleMatch()
+IEnumerator HandleMatch()
         {
             locked = true;
             matched[firstIndex] = matched[secondIndex] = true;
-            if (cardButtons[firstIndex]) cardButtons[firstIndex].interactable = false;
-            if (cardButtons[secondIndex]) cardButtons[secondIndex].interactable = false;
+
+            if (cardButtons[firstIndex])
+                cardButtons[firstIndex].interactable = false;
+
+            if (cardButtons[secondIndex])
+                cardButtons[secondIndex].interactable = false;
 
             matchedPairs++;
+
             int alphabetIndex = alphabetIndices[firstIndex];
             string letter = Alphabet[alphabetIndex].ToString();
             string word = Words[alphabetIndex];
@@ -296,27 +301,63 @@ namespace LearningWithJourney.Games
 
             if (currentMode == MatchMode.UpperLower)
             {
-                if (feedbackText) feedbackText.text = "Great match! " + letter + " matches " + letter.ToLowerInvariant() + ".";
-                if (speechText) speechText.text = "Great match! Uppercase " + letter + " and lowercase " + letter.ToLowerInvariant() + ".";
-                journeySpeech?.SpeakCaseMatch(letter);
+                if (feedbackText)
+                    feedbackText.text =
+                        "Great match! " + letter + " matches " +
+                        letter.ToLowerInvariant() + ".";
+
+                if (speechText)
+                    speechText.text =
+                        "Great match! Uppercase " + letter +
+                        " and lowercase " + letter.ToLowerInvariant() + ".";
+
+                if (journeySpeech != null)
+                    yield return StartCoroutine(
+                        journeySpeech.SpeakCaseMatchAndWait(letter));
             }
             else if (currentMode == MatchMode.LowercasePicture)
             {
-                if (feedbackText) feedbackText.text = "Great match! lowercase " + letter.ToLowerInvariant() + " is for " + word + ".";
-                if (speechText) speechText.text = "Lowercase " + letter.ToLowerInvariant() + " is for " + word + ".";
-                journeySpeech?.SpeakLowercase(letter);
+                if (feedbackText)
+                    feedbackText.text =
+                        "Great match! lowercase " +
+                        letter.ToLowerInvariant() + " is for " + word + ".";
+
+                if (speechText)
+                    speechText.text =
+                        "Lowercase " + letter.ToLowerInvariant() +
+                        " is for " + word + ".";
+
+                if (journeySpeech != null)
+                    yield return StartCoroutine(
+                        journeySpeech.SpeakLowercaseAndWait(letter));
             }
             else
             {
-                if (feedbackText) feedbackText.text = "Great match! " + letter + " is for " + word + ".";
-                if (speechText) speechText.text = letter + " is for " + word + ".";
-                journeySpeech?.SpeakPair(alphabetIndex, letter, word);
+                if (feedbackText)
+                    feedbackText.text =
+                        "Great match! " + letter + " is for " + word + ".";
+
+                if (speechText)
+                    speechText.text =
+                        letter + " is for " + word + ".";
+
+                if (journeySpeech != null)
+                    yield return StartCoroutine(
+                        journeySpeech.SpeakPairAndWait(
+                            alphabetIndex,
+                            letter,
+                            word));
             }
 
-            if (journeyRect) StartCoroutine(CelebrateJourney());
+            if (journeySpeech != null)
+                yield return StartCoroutine(journeySpeech.SpeakCorrectAndWait());
+            if (journeyRect)
+                StartCoroutine(CelebrateJourney());
+
             UpdateProgressHud();
 
-            yield return new WaitForSeconds(.8f);
+            yield return new WaitForSecondsRealtime(.12f);
+
             firstIndex = secondIndex = -1;
             locked = false;
 
@@ -324,31 +365,59 @@ namespace LearningWithJourney.Games
                 StartCoroutine(CompleteRound());
         }
 
-        IEnumerator HandleMiss()
+IEnumerator HandleMiss()
         {
             locked = true;
-            GameProgressService.Instance?.RegisterMiss();
-            if (feedbackText) feedbackText.text = "Almost! Remember the cards and try again.";
-            if (speechText) speechText.text = "Almost. Try again!";
-            journeySpeech?.SpeakTryAgain();
 
-            yield return new WaitForSeconds(.9f);
+            GameProgressService.Instance?.RegisterMiss();
+
+            if (feedbackText)
+                feedbackText.text =
+                    "Almost! Remember the cards and try again.";
+
+            if (speechText)
+                speechText.text = "Almost. Try again!";
+
+            if (journeySpeech != null)
+            {
+                yield return StartCoroutine(
+                    journeySpeech.SpeakTryAgainAndWait());
+            }
+            else
+            {
+                yield return new WaitForSecondsRealtime(.9f);
+            }
+
+            yield return new WaitForSecondsRealtime(.12f);
+
             HideCard(firstIndex);
             HideCard(secondIndex);
+
             firstIndex = secondIndex = -1;
             locked = false;
         }
 
-        IEnumerator CompleteRound()
+IEnumerator CompleteRound()
         {
             locked = true;
-            GameProgressService.Instance?.CompleteGame();
-            if (feedbackText) feedbackText.text = "Amazing! You matched them all!";
-            if (speechText) speechText.text = "Great job! You matched every pair.";
-            journeySpeech?.SpeakRoundComplete();
-            if (journeyRect) StartCoroutine(CelebrateJourney());
 
-            yield return new WaitForSeconds(1.5f);
+            GameProgressService.Instance?.CompleteGame();
+
+            if (feedbackText)
+                feedbackText.text = "Amazing! You matched them all!";
+
+            if (speechText)
+                speechText.text = "Great job! You matched every pair.";
+
+            if (journeySpeech != null)
+            {
+                yield return StartCoroutine(
+                    journeySpeech.SpeakRoundCompleteAndWait());
+            }
+            else
+            {
+                yield return new WaitForSecondsRealtime(1.5f);
+            }
 
             if (round < roundsPerLevel)
             {
@@ -363,21 +432,44 @@ namespace LearningWithJourney.Games
                 int finished = currentLevel;
                 currentLevel++;
                 round = 1;
-                GameLevelProgressV1.BeginLevel("ALPHABET_MATCH", currentLevel);
+
+                GameLevelProgressV1.BeginLevel(
+                    "ALPHABET_MATCH",
+                    currentLevel);
+
                 SaveProgress();
                 GameProgressService.Instance?.AddReward(3, 15);
-                if (speechText) speechText.text = "Level " + finished + " complete!";
-                journeySpeech?.SpeakLevelComplete(finished);
-                yield return new WaitForSeconds(1.1f);
+
+                if (speechText)
+                    speechText.text =
+                        "Level " + finished + " complete!";
+
+                if (journeySpeech != null)
+                {
+                    yield return StartCoroutine(
+                        journeySpeech.SpeakLevelCompleteAndWait(
+                            finished));
+                }
+                else
+                {
+                    yield return new WaitForSecondsRealtime(1.1f);
+                }
+
                 StartRound();
                 yield break;
             }
+
             worldCompleted = true;
-            GameLevelProgressV1.CompleteLevel("ALPHABET_MATCH", currentLevel);
+
+            GameLevelProgressV1.CompleteLevel(
+                "ALPHABET_MATCH",
+                currentLevel);
+
             PlayerPrefs.SetInt(CompleteKey, 1);
             PlayerPrefs.SetInt(LevelKey, totalLevels);
             PlayerPrefs.SetInt(RoundKey, roundsPerLevel);
             PlayerPrefs.Save();
+
             GameProgressService.Instance?.AddReward(10, 50);
             ShowCompletedState();
         }
